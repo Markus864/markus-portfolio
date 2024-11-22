@@ -1,0 +1,20 @@
+{
+    "ssh_bruteforce": {
+        "pattern": "Failed password for .* from (.*) port \\d+",
+        "threshold": 5,
+        "timeframe": 300,
+        "severity": "HIGH"
+    },
+    "suspicious_commands": {
+        "pattern": "(wget|curl|nc|netcat|chmod \\+x)",
+        "threshold": 1,
+        "timeframe": 60,
+        "severity": "MEDIUM"
+    },
+    "root_login_attempt": {
+        "pattern": "Failed password for root from (.*) port \\d+",
+        "threshold": 3,
+        "timeframe": 300,
+        "severity": "HIGH"
+    }
+}

