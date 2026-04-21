@@ -129,6 +129,12 @@ Led preventive maintenance for industrial machines. Mentored junior staff and dr
 | [Iron Strike Trading](./Iron-Strike-Trading/) | Full-stack AI-powered options trading signal platform with real-time market data, strategy backtesting, live signals, and a subscription billing system | React, TypeScript, Node.js, PostgreSQL, Stripe, Clerk, TradingView |
 | [Crypto Wallet Bot](./crypto-wallet/) | Automated Solana momentum scalping bot using Jupiter DEX — scans DexScreener for trending tokens, executes trades with configurable stop loss / take profit, and manages a kill switch | Python, Solana, Jupiter API, DexScreener |
 
+### Real-Time Data & Alerts
+
+| Project | Description | Tech |
+|---------|-------------|------|
+| [Trump Tweet Stream](./Trump-Tweet-Stream/) | Real-time X (Twitter) filtered stream that watches @realDonaldTrump, classifies tweets by market relevance (tariffs, crypto, geopolitical), and fires instant Telegram alerts | Python, X API v2, Telegram Bot API, systemd |
+
 ---
 
 ## Repository Structure
@@ -157,5 +163,8 @@ markus-portfolio/
 │   └── [utility scripts]
 ├── crypto-wallet/
 │   └── bot/
+├── Trump-Tweet-Stream/
+│   ├── README.md
+│   └── SETUP_GUIDE.md
 └── Mark's Resume.pdf
 ```
