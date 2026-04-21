@@ -1,0 +1,876 @@
+{
+  "name": "African History Telegram Auto-Scheduler",
+  "nodes": [
+    {
+      "parameters": {
+        "jsCode": "function getOpenAiMessage(json) {\n  const msg =\n    json?.output?.[0]?.content?.[0]?.text?.message ??\n    json?.output?.[0]?.content?.[0]?.text ??\n    \"\";\n  return typeof msg === \"string\" ? msg.trim() : \"\";\n}\n\nconst raw = getOpenAiMessage($json);\n\nif (!raw) {\n  throw new Error(\"OpenAI message empty. Check OpenAI node output.\");\n}\n\n// Extract FIRST JSON object from the response (handles preface text)\nconst match = raw.match(/\\{[\\s\\S]*\\}/);\nif (!match) {\n  throw new Error(\"No JSON object found in OpenAI output. First 500 chars: \" + raw.slice(0, 500));\n}\n\nlet obj;\ntry {\n  obj = JSON.parse(match[0]);\n} catch (e) {\n  throw new Error(\n    \"Failed to parse extracted JSON. Error: \" +\n      e.message +\n      \" | Extracted first 500 chars: \" +\n      match[0].slice(0, 500)\n  );\n}\n\n// Strict schema validation\nif (!obj.title || typeof obj.title !== \"string\") {\n  throw new Error(\"JSON missing/invalid 'title'.\");\n}\nif (!obj.narration || typeof obj.narration !== \"string\") {\n  throw new Error(\"JSON missing/invalid 'narration'.\");\n}\nif (!Array.isArray(obj.image_prompts)) {\n  throw new Error(\"JSON missing/invalid 'image_prompts' array.\");\n}\nif (obj.image_prompts.length < 5 || obj.image_prompts.length > 10) {\n  throw new Error(\"image_prompts must be 5–10. Got: \" + obj.image_prompts.length);\n}\n\n// Optional: normalize whitespace\nobj.narration = obj.narration.replace(/\\s+/g, \" \").trim();\nobj.image_prompts = obj.image_prompts.map(p => String(p).trim()).filter(Boolean);\n\nreturn [{ json: obj }];\n"
+      },
+      "id": "1c98bbb4-e69c-48b7-b4ac-dd5d4bf55ab0",
+      "name": "Parse Fact Package JSON",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1328,
+        688
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://api.elevenlabs.io/v1/text-to-speech/{{ $('Configuration').first().json.elevenLabsVoiceId }}?output_format=mp3_44100_128",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "xi-api-key",
+              "value": "={{ $('Configuration').item.json.elevenLabsApiKey }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ {\n  text: $json.narration,\n  model_id: $('Configuration').first().json.elevenLabsModelId,\n  voice_settings: {\n    stability: 0.55,\n    similarity_boost: 0.75,\n    style: 0.1,\n    use_speaker_boost: true\n  }\n} }}",
+        "options": {}
+      },
+      "id": "610683e0-1a11-4c0b-a6bc-15aa6b9699e0",
+      "name": "ElevenLabs TTS (Adam)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1552,
+        640
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "sendAudio",
+        "chatId": "={{ $('Configuration').first().json.telegramChatId }}",
+        "binaryData": true,
+        "additionalFields": {
+          "caption": "={{ $json.title }}"
+        }
+      },
+      "id": "dc551539-b3a0-49c0-ad49-10495bae4842",
+      "name": "Send Narration Audio",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1776,
+        640
+      ],
+      "retryOnFail": true,
+      "waitBetweenTries": 5000,
+      "webhookId": "93a66703-914c-4dc7-afc6-211bc3970fbb",
+      "credentials": {
+        "telegramApi": {
+          "id": "YmWZcfbuZbX7bpZk",
+          "name": "AA_History_bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Expands the fact package into one item per image prompt so the existing Flux pipeline can run unchanged.\n// Output items contain `image_prompt` (what your existing \"Start Image Generation\" node already expects).\n\nif (!Array.isArray($json.image_prompts) || $json.image_prompts.length === 0) {\n  throw new Error(\"No image_prompts array found.\");\n}\n\nreturn $json.image_prompts.map((prompt, idx) => ({\n  json: {\n    title: $json.title,\n    image_index: idx + 1,\n    image_prompt: prompt\n  }\n}));\n\n\n// If we somehow receive a single prompt item, just pass it through.\nif (!$json.image_prompt) {\n  throw new Error('No image_prompt found on item.');\n}\nreturn [{ json: $json }];"
+      },
+      "id": "b6a81f44-4d29-4348-8c4c-dc4aeecea879",
+      "name": "Set Current Image Prompt",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1552,
+        832
+      ]
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "2bb8ecf6-92d9-4faa-9342-64b141c164da",
+      "name": "Split Image Prompts (5-10)",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        1776,
+        832
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "sendPhoto",
+        "chatId": "={{ $('Configuration').first().json.telegramChatId }}",
+        "file": "={{ $json.images[0].url }}",
+        "additionalFields": {}
+      },
+      "id": "8a0e02b6-5bd7-4b35-a47a-c4a36935eacd",
+      "name": "Send Generated Photo",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        3344,
+        832
+      ],
+      "retryOnFail": true,
+      "waitBetweenTries": 5000,
+      "webhookId": "0ce7887b-0a66-4050-bef4-7f601e223d60",
+      "credentials": {
+        "telegramApi": {
+          "id": "YmWZcfbuZbX7bpZk",
+          "name": "AA_History_bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0,10,20,30,40 7,16 * * *"
+            }
+          ]
+        }
+      },
+      "id": "79351af7-3a03-4a12-ab8b-90b044ae610c",
+      "name": "Schedule Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        -720,
+        576
+      ]
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_GOOGLE_SHEET_ID",
+          "mode": "list",
+          "cachedResultName": "anubis_ancient_captions - anubis_ancient_captions (1)",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/YOUR_GOOGLE_SHEET_ID/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 844807346,
+          "mode": "list",
+          "cachedResultName": "African American History",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/YOUR_GOOGLE_SHEET_ID/edit#gid=844807346"
+        },
+        "options": {}
+      },
+      "id": "49e2c6b6-0406-48bb-b096-8343d0bdd363",
+      "name": "Read Top Caption",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.3,
+      "position": [
+        -496,
+        576
+      ],
+      "executeOnce": false,
+      "alwaysOutputData": true,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "Fcs6UPZJE4vxo68P",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const text = $input.first().json.output[0].content[0].text;\n// Split by the delimiter |||\nconst parts = text.split('|||');\n\n// Format for Google Sheets\nconst rows = parts.map(scene => {\n  return {\n    json: {\n      caption: scene.trim()\n    }\n  };\n}).filter(r => r.json.caption.length > 5); // Simple filter to remove empty splits\n\nreturn rows;"
+      },
+      "id": "51043496-d851-416c-97cb-68bb7904f291",
+      "name": "Format for Sheets",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        752,
+        448
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_GOOGLE_SHEET_ID",
+          "mode": "list",
+          "cachedResultName": "anubis_ancient_captions - anubis_ancient_captions (1)",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/YOUR_GOOGLE_SHEET_ID/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 844807346,
+          "mode": "list",
+          "cachedResultName": "African American History",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/YOUR_GOOGLE_SHEET_ID/edit#gid=844807346"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "caption": "={{ $json.caption }}"
+          },
+          "matchingColumns": [
+            "caption"
+          ],
+          "schema": [
+            {
+              "id": "caption",
+              "displayName": "caption",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "a7af3347-7e9a-4f1c-8ed7-c125113da69f",
+      "name": "Refill Sheet",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.3,
+      "position": [
+        1040,
+        496
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "Fcs6UPZJE4vxo68P",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "delete",
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_GOOGLE_SHEET_ID",
+          "mode": "list",
+          "cachedResultName": "anubis_ancient_captions - anubis_ancient_captions (1)",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/YOUR_GOOGLE_SHEET_ID/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 844807346,
+          "mode": "list",
+          "cachedResultName": "African American History",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/YOUR_GOOGLE_SHEET_ID/edit#gid=844807346"
+        }
+      },
+      "id": "54a1d372-bdbc-473e-a896-3754b88908fa",
+      "name": "Delete Used Row",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.3,
+      "position": [
+        448,
+        752
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "Fcs6UPZJE4vxo68P",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "id-3",
+              "name": "falApiKey",
+              "type": "string",
+              "value": "YOUR_FAL_API_KEY"
+            },
+            {
+              "id": "id-4",
+              "name": "telegramChatId",
+              "type": "string",
+              "value": "YOUR_TELEGRAM_CHAT_ID"
+            },
+            {
+              "id": "96016ebd-533b-4037-b69e-4be6c81a0d57",
+              "name": "elevenLabsApiKey",
+              "value": "YOUR_ELEVENLABS_API_KEY",
+              "type": "string"
+            },
+            {
+              "id": "d894a1a8-7d3f-45d2-a95a-0fc718d5b5a5",
+              "name": "elevenLabsVoiceId",
+              "value": "YOUR_ELEVENLABS_VOICE_ID",
+              "type": "string"
+            },
+            {
+              "id": "4988d4c7-1ccc-4f77-84eb-587b6326b26c",
+              "name": "elevenLabsModelId",
+              "value": "eleven_multilingual_v2",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "id": "e873d34e-025d-4deb-b534-90a85f0209fd",
+      "name": "Configuration",
+      "type": "n8n-nodes-base.set",
+      "position": [
+        736,
+        768
+      ],
+      "typeVersion": 3.4
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://queue.fal.run/fal-ai/flux/dev",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Key {{ $('Configuration').first().json.falApiKey }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ {\n  \"prompt\": $json.image_prompt,\n  \"image_size\": \"portrait_16_9\",\n  \"num_inference_steps\": 30,\n  \"guidance_scale\": 3.5\n} }}",
+        "options": {}
+      },
+      "id": "68903f28-844b-40bc-a236-4f18c64dde7d",
+      "name": "Start Image Generation",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [
+        2000,
+        784
+      ],
+      "typeVersion": 4.2
+    },
+    {
+      "parameters": {
+        "amount": 10
+      },
+      "id": "bee70202-e935-4f18-ab08-f128568fc3eb",
+      "name": "Wait (Image Loop)",
+      "type": "n8n-nodes-base.wait",
+      "position": [
+        2224,
+        784
+      ],
+      "webhookId": "ec204db8-e154-4318-b018-1ea5d04fce31",
+      "typeVersion": 1.1
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.status_url }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "={{ $('Configuration').first().json.falApiKey }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "02bdaf25-f81a-4242-910a-1d9da9bd53d5",
+      "name": "Check Image Status",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [
+        2448,
+        720
+      ],
+      "typeVersion": 4.2
+    },
+    {
+      "parameters": {
+        "jsCode": "const j = $json;\nconst obj = Array.isArray(j) ? j[0] : j;\nreturn [{ json: { ...obj } }];"
+      },
+      "id": "b30a0242-07fc-487d-aff4-008e31bf4c5a",
+      "name": "Normalize Image Status",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2672,
+        720
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "0225d57d-419b-4494-b778-9844036f0b4d",
+              "leftValue": "={{ $json.status }}",
+              "rightValue": "COMPLETED",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        2896,
+        784
+      ],
+      "id": "3d9cb175-6eb6-4921-9996-de60d45d747a",
+      "name": "Image Complete?"
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.response_url }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "={{ $('Configuration').first().json.falApiKey }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "5896fbb8-0f1c-4ec0-8c98-67f0bec8ba81",
+      "name": "Fetch Image Result",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [
+        3120,
+        784
+      ],
+      "typeVersion": 4.2
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "chatgpt-4o-latest",
+          "mode": "list",
+          "cachedResultName": "CHATGPT-4O-LATEST"
+        },
+        "responses": {
+          "values": [
+            {
+              "content": "You are an expert historian and educational content curator.\n\nGenerate 120 distinct African American history topics suitable for 45–75 second narrated short-form videos.\n\nRules:\n- Each topic must be 3–10 words long.\n- Topics must be factual, educational, and evergreen.\n- Focus on people, movements, inventions, cultural moments, achievements, and historical events.\n- Avoid political advocacy, modern political debates, or calls to action.\n- Avoid graphic violence.\n- Avoid slang, emojis, hashtags, or commentary.\n- Do NOT number the topics.\n- Do NOT use bullet points.\n- Do NOT include dates unless essential to clarity.\n- Each topic must be unique and non-repetitive.\n\nFormatting:\n- Output ONLY the topics.\n- Separate each topic using exactly: |||\n- No extra text before or after the list.\n\nContent balance guidelines:\n- Include a mix of early history, Reconstruction era, Harlem Renaissance, Civil Rights era, science & innovation, arts & music, business & entrepreneurship, military service, sports history, education, and cultural influence.\n- Maintain a respectful, neutral, documentary-style framing.\n\nBegin."
+            }
+          ]
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 2.1,
+      "position": [
+        400,
+        448
+      ],
+      "id": "af8309f4-7b27-4caf-815e-e02795e0e371",
+      "name": "Message a model",
+      "credentials": {
+        "openAiApi": {
+          "id": "qmb80pU9tjFzXx6M",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "chatgpt-4o-latest",
+          "mode": "list",
+          "cachedResultName": "CHATGPT-4O-LATEST"
+        },
+        "responses": {
+          "values": [
+            {
+              "content": "=You are a JSON-only generator.\n\nCreate ONE African American history fact package based on the topic.\n\nTOPIC: {{ $('Limit1').item.json.caption }}{{ $('Limit1').item.json.caption }}\n\nReturn ONLY valid JSON with this exact schema:\n{\n  \"title\": \"string\",\n  \"narration\": \"string\",\n  \"image_prompts\": [\"string\"]\n}\n\nRules:\n- narration: 110–160 words, documentary voiceover cadence, factual, respectful.\n- image_prompts: 10 prompts exactly, each a distinct visual beat for a slideshow.\n- No on-screen text, captions, typography, watermarks, logos, or readable text in the visuals.\n- Avoid graphic violence.\n- Include historically accurate cues (era, clothing, environment).\n\nCRITICAL:\n- Output ONLY JSON.\n- No preface text.\n- No markdown.\n- First character must be { and last character must be }.\n"
+            }
+          ]
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 2.1,
+      "position": [
+        976,
+        784
+      ],
+      "id": "6427d44f-4e57-4f3f-872c-de5c22fbf7a9",
+      "name": "Message a model1",
+      "credentials": {
+        "openAiApi": {
+          "id": "qmb80pU9tjFzXx6M",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\n\n// If Google Sheets returned 0 items, inject a single placeholder row\nif (!items || items.length === 0) {\n  return [{ json: { caption: \"\" } }];\n}\n\n// If there is data, make sure `caption` at least exists\nreturn items.map(item => {\n  const j = item.json || {};\n  return {\n    json: {\n      ...j,\n      caption: j.caption ?? \"\"\n    }\n  };\n});\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -272,
+        496
+      ],
+      "id": "15af8c8d-c4b4-4c5f-884e-08784bd81a9d",
+      "name": "Guard: Ensure One Item"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "62b7cf32-d281-4180-8819-96699de68be0",
+              "leftValue": "={{$json.caption || ''}}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        176,
+        496
+      ],
+      "id": "b078f62b-542f-46cf-aef9-946228c2c8b4",
+      "name": "If"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.limit",
+      "typeVersion": 1,
+      "position": [
+        -48,
+        496
+      ],
+      "id": "8592975b-69a3-4b1d-ac2a-2b8e0c1b1921",
+      "name": "Limit1"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Parse Fact Package JSON": {
+      "main": [
+        [
+          {
+            "node": "ElevenLabs TTS (Adam)",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Set Current Image Prompt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ElevenLabs TTS (Adam)": {
+      "main": [
+        [
+          {
+            "node": "Send Narration Audio",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Current Image Prompt": {
+      "main": [
+        [
+          {
+            "node": "Split Image Prompts (5-10)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Generated Photo": {
+      "main": [
+        [
+          {
+            "node": "Split Image Prompts (5-10)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Read Top Caption",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Top Caption": {
+      "main": [
+        [
+          {
+            "node": "Guard: Ensure One Item",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format for Sheets": {
+      "main": [
+        [
+          {
+            "node": "Refill Sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Refill Sheet": {
+      "main": [
+        [
+          {
+            "node": "Read Top Caption",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Delete Used Row": {
+      "main": [
+        [
+          {
+            "node": "Configuration",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Configuration": {
+      "main": [
+        [
+          {
+            "node": "Message a model1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Start Image Generation": {
+      "main": [
+        [
+          {
+            "node": "Wait (Image Loop)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait (Image Loop)": {
+      "main": [
+        [
+          {
+            "node": "Check Image Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Image Status": {
+      "main": [
+        [
+          {
+            "node": "Normalize Image Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize Image Status": {
+      "main": [
+        [
+          {
+            "node": "Image Complete?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Image Complete?": {
+      "main": [
+        [
+          {
+            "node": "Fetch Image Result",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Wait (Image Loop)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Image Result": {
+      "main": [
+        [
+          {
+            "node": "Send Generated Photo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Message a model": {
+      "main": [
+        [
+          {
+            "node": "Format for Sheets",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Image Prompts (5-10)": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Start Image Generation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Message a model1": {
+      "main": [
+        [
+          {
+            "node": "Parse Fact Package JSON",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Guard: Ensure One Item": {
+      "main": [
+        [
+          {
+            "node": "Limit1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Limit1": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Message a model",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Delete Used Row",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false
+  },
+  "versionId": "f371b04f-dde0-4551-99dd-d809059b3fa5",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "73b0ef7912b94af41030d669361dedec64742b8175b5827e85bf2c8e375e8312"
+  },
+  "id": "EmTNdzYFC4FFRdGP",
+  "tags": []
+}

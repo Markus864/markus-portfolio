@@ -1,0 +1,30 @@
+version: 0.2
+
+env:
+  variables:
+    AWS_REGION: "us-east-1"
+    AWS_ACCOUNT_ID: "YOUR_AWS_ACCOUNT_ID"
+    ECR_REPO_NAME: "iron-strike-trading"
+    IMAGE_TAG: "latest"
+
+phases:
+  pre_build:
+    commands:
+      - echo Logging in to Amazon ECR...
+      - aws --version
+      - export ECR_REGISTRY="${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com"
+      - export ECR_REPO_URI="${ECR_REGISTRY}/${ECR_REPO_NAME}"
+      - aws ecr get-login-password --region "$AWS_REGION" | docker login --username AWS --password-stdin "$ECR_REGISTRY"
+
+  build:
+    commands:
+      - echo "VITE_CLERK_PUBLISHABLE_KEY length is ${#VITE_CLERK_PUBLISHABLE_KEY}"
+      - docker build --build-arg VITE_CLERK_PUBLISHABLE_KEY="$VITE_CLERK_PUBLISHABLE_KEY" --build-arg CLERK_PUBLISHABLE_KEY="$VITE_CLERK_PUBLISHABLE_KEY" -t app:"$IMAGE_TAG" .
+      - docker tag app:"$IMAGE_TAG" "$ECR_REPO_URI":"$IMAGE_TAG"
+
+  post_build:
+    commands:
+      - echo Pushing Docker image...
+      - docker push "$ECR_REPO_URI":"$IMAGE_TAG"
+      - echo "Build completed on $(date)"
+      - aws ecs update-service --cluster "ironstrike-cluster" --service "ironstrike-app-service" --force-new-deployment --region "$AWS_REGION"

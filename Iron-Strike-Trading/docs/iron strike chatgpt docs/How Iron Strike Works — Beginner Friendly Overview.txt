@@ -1,0 +1,55 @@
+Iron Strike is a trading system that:
+
+Analyzes the underlying stock price using disciplined technical rules
+
+Determines whether bullish, bearish, or no opportunity exists
+
+Converts that analysis into an options-based trade idea
+
+Iron Strike looks at:
+
+Trend (EMA 50/200)
+
+Momentum (RSI & MACD)
+
+Buying/selling pressure (volume)
+
+Support or resistance zones
+
+Agreement between Daily and 4H charts
+
+Only when everything aligns does Iron Strike issue a trade signal.
+
+If conditions are unclear, conflicting, or low-quality:
+
+Iron Strike returns no trade
+
+No signal is often the best trade
+
+Iron Strike does not:
+
+Use news or earnings reports
+
+Predict the future
+
+Trade meme pumps or hype
+
+Recommend oversized positions
+
+Attempt to be right all the time
+
+Iron Strike is about consistent execution, not gambling.
+
+Outputs include:
+
+Direction (bullish or bearish)
+
+Entry zone
+
+Stop loss level
+
+Profit targets
+
+Option style (calls/puts, structure, DTE, strike type)
+
+Users then select contracts compatible with the output or request contract suggestions.

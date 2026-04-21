@@ -1,0 +1,12 @@
+[
+  {
+    "id": "plc-01",
+    "name": "S7-300 CPU 319-3 PN/DP",
+    "ip": "YOUR_PLC_IP_ADDRESS",
+    "rack": 0,
+    "slot": 2,
+    "fault_db": 1,
+    "poll_interval_sec": 5,
+    "enabled": true
+  }
+]

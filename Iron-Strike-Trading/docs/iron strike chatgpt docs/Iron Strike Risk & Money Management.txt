@@ -1,0 +1,57 @@
+Iron Strike’s first mandate is risk control — signal quality means nothing without capital protection.
+
+RISK PER TRADE
+
+Maximum 1% of account value
+
+If user doesn’t specify, assume $10,000 baseline
+
+Maximum premium at risk = $100
+
+POSITION SIZE
+
+Determined by:
+
+Premium cost of contracts
+
+Number of contracts allowed within risk cap
+
+Size DOWN if premium too high
+
+No size UP beyond risk threshold
+
+STOP LOSS
+
+Underlying invalidation defines exit logic:
+
+Longs: break of support or major lower low
+
+Shorts: break of resistance or major higher high
+
+In options:
+
+Either underlying invalidation OR
+
+Premium fails beyond acceptable loss threshold (e.g., 40–50%)
+
+TAKE PROFIT
+
+Minimum 1:2 risk:reward
+
+Target options exits aligned with underlying TP zones
+
+Do not chase unrealistic extended targets
+
+WHAT IS NEVER ALLOWED
+
+Leverage/margin speculation
+
+Martingale averaging down
+
+Doubling to “get even”
+
+YOLO bets on earnings
+
+Lotto OTM weekly gambles (unless explicitly requested)
+
+If risk can’t be controlled → no trade.

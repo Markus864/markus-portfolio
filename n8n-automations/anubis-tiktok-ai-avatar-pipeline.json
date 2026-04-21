@@ -1,0 +1,1183 @@
+{
+  "name": "Anubis TikTok Videos with VEED.io AI Avatars, ElevenLabs & GPT-4",
+  "nodes": [
+    {
+      "parameters": {
+        "updates": [
+          "message"
+        ],
+        "additionalFields": {}
+      },
+      "id": "2870c87e-82a6-4a24-a86a-a4c55a9225d9",
+      "name": "Telegram Trigger",
+      "type": "n8n-nodes-base.telegramTrigger",
+      "position": [
+        1248,
+        368
+      ],
+      "webhookId": "ccba06ce-2121-43c0-80f0-cd77f60f3130",
+      "typeVersion": 1.2,
+      "credentials": {
+        "telegramApi": {
+          "id": "6RoGxZEIyk1y4bnU",
+          "name": "Anubis_bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "id-1",
+              "name": "elevenLabsApiKey",
+              "type": "string",
+              "value": "YOUR_ELEVENLABS_API_KEY"
+            },
+            {
+              "id": "id-2",
+              "name": "elevenLabsVoiceId",
+              "type": "string",
+              "value": "YOUR_ELEVENLABS_VOICE_ID"
+            },
+            {
+              "id": "id-3",
+              "name": "falApiKey",
+              "type": "string",
+              "value": "YOUR_FAL_API_KEY"
+            },
+            {
+              "id": "id-5",
+              "name": "scriptMaxDuration",
+              "type": "number",
+              "value": 30
+            },
+            {
+              "id": "id-6",
+              "name": "perplexityModel",
+              "type": "string",
+              "value": "sonar"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "id": "41a44991-a52f-4186-8dec-16f6ccc4faa8",
+      "name": "Workflow Configuration",
+      "type": "n8n-nodes-base.set",
+      "position": [
+        1472,
+        368
+      ],
+      "typeVersion": 3.4
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "id-1",
+              "name": "photoUrl",
+              "type": "string",
+              "value": "={{ $json.message.photo ? $json.message.photo[$json.message.photo.length - 1].file_id : '' }}"
+            },
+            {
+              "id": "id-2",
+              "name": "theme",
+              "type": "string",
+              "value": "={{ $json.message.caption || $json.message.text || 'viral content' }}"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "id": "985914cd-27e0-4a14-8f51-3da7b4e7a35b",
+      "name": "Extract Photo and Theme",
+      "type": "n8n-nodes-base.set",
+      "position": [
+        1696,
+        368
+      ],
+      "typeVersion": 3.4
+    },
+    {
+      "parameters": {
+        "model": "={{ $('Workflow Configuration').first().json.perplexityModel }}",
+        "messages": {
+          "message": [
+            {
+              "content": "={{ \n  \"Find the top 3 current viral trends related to: \" + $('Extract Photo and Theme').item.json.message.caption + \n  \". Focus on trending topics, hashtags, and content styles that are performing well on TikTok right now. \" + \n  \"Be specific and actionable. Limit your response strictly to 3 results only — no more.\" \n}}"
+            }
+          ]
+        },
+        "options": {},
+        "requestOptions": {}
+      },
+      "id": "dd85cdf3-6acc-4758-b9d3-1bab26125361",
+      "name": "Search Trends with Perplexity",
+      "type": "n8n-nodes-base.perplexity",
+      "position": [
+        2368,
+        368
+      ],
+      "typeVersion": 1,
+      "credentials": {
+        "perplexityApi": {
+          "id": "qyiyPSjwFahAiK3d",
+          "name": "Perplexity account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "gpt-4o-mini"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "=Based on these market trends: {{ $json.choices[0].message.content }}\n\nCreate a viral TikTok script in the POV of Anubis, the Egyptian God of the Dead.\nThe specific subject is: {{ $('Extract Photo and Theme').first().json.theme }}\n\nDirectives:\n- ROLE: You are Anubis. You are timeless, authoritative, and deep-voiced. You judge souls.\n- TONE: Ominous but wise. Speak of \"Mortals,\" \"The Scales,\" \"Eternity,\" and \"The Weight of the Heart.\"\n- CONTENT: Interpret the \"Subject\" not as a modern trend, but as a test of the soul or a lesson for the afterlife.\n- HOOK: You must stop the user from scrolling immediately. Address them directly.\n\nTechnical Constraints:\n- Maximum 30 seconds when spoken (approx 60-75 words).\n- Write for Text-to-Speech: Do NOT include asterisks, emojis, hashtags, scene descriptions, or visual cues (like *sighs* or [intro music]).\n- Output ONLY the spoken words."
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "610387e3-8f6c-4ceb-b66c-f2311a216259",
+      "name": "Generate Script with GPT-4",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "position": [
+        2592,
+        368
+      ],
+      "typeVersion": 1.8,
+      "credentials": {
+        "openAiApi": {
+          "id": "qmb80pU9tjFzXx6M",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ 'https://api.elevenlabs.io/v1/text-to-speech/' + $('Workflow Configuration').first().json.elevenLabsVoiceId }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "xi-api-key",
+              "value": "={{ $('Workflow Configuration').first().json.elevenLabsApiKey }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Accept",
+              "value": "audio/mpeg"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ \n  {\n    \"text\": $json.message.content,\n    \"model_id\": \"eleven_multilingual_v2\",\n    \"voice_settings\": {\n      \"stability\": 0.5,\n      \"similarity_boost\": 0.75\n    }\n  } \n}}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file",
+              "outputPropertyName": "audio"
+            }
+          }
+        }
+      },
+      "id": "a2b3c398-d8d8-429a-9a74-dfc4234798dc",
+      "name": "ElevenLabs Voice Synthesis",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [
+        2944,
+        368
+      ],
+      "typeVersion": 4.2
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://queue.fal.run/veed/fabric-1.0",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Key {{ $('Workflow Configuration').first().json.falApiKey }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { \"image_url\": $('Build Public Image URL').first().json.data.url.replace(/^http:\\/\\/tmpfiles\\.org\\/(\\d+)\\/(.*)$/i, 'https://tmpfiles.org/dl/$1/$2'), \"audio_url\": $json.data.url.replace(/^http:\\/\\/tmpfiles\\.org\\/(\\d+)\\/(.*)$/i, 'https://tmpfiles.org/dl/$1/$2'), \"resolution\": \"480p\" } }}",
+        "options": {}
+      },
+      "id": "02e11c5b-d6b9-4c4e-aee5-f68c9fd216d4",
+      "name": "FAL.ai Video Generation",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [
+        3616,
+        368
+      ],
+      "typeVersion": 4.2
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "gpt-4o-mini"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "=Create an engaging TikTok caption for a video about: {{ $('Extract Photo and Theme').first().json.theme }}\n\nBased on these trends: {{ $('Search Trends with Perplexity').first().json.choices[0].message.content }}\n\nRequirements:\n- Catchy hook in first line\n- Include 5-8 relevant trending hashtags\n- Keep it concise and engaging\n- Optimize for TikTok algorithm\n- Return ONLY the caption text with hashtags, nothing else"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "572053f5-c2e2-4454-b2f8-c31bcceb986e",
+      "name": "Generate Caption with GPT-4",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "position": [
+        4512,
+        240
+      ],
+      "typeVersion": 1.8,
+      "credentials": {
+        "openAiApi": {
+          "id": "qmb80pU9tjFzXx6M",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_GOOGLE_SHEET_ID",
+          "mode": "list",
+          "cachedResultName": "Anubis_Videos",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/YOUR_GOOGLE_SHEET_ID/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Videos",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/YOUR_GOOGLE_SHEET_ID/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "IDEA": "={{ $('Generate Script with GPT-4').item.json.message.content }}",
+            "URL AUDIO": "={{ $('Upload Audio to Public URL').item.json.data.url }}",
+            "URL VIDEO": "={{ $('Download VEED Video').item.json.video.url }}",
+            "CAPTION": "={{ $json.message.content }}",
+            "URL_IMAGE": "={{ $('Build Public Image URL').item.json.data.url }}",
+            "STATUS": "READY"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "IDEA",
+              "displayName": "IDEA",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "URL_IMAGE",
+              "displayName": "URL_IMAGE",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "URL AUDIO",
+              "displayName": "URL AUDIO",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "URL VIDEO",
+              "displayName": "URL VIDEO",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "CAPTION",
+              "displayName": "CAPTION",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "STATUS",
+              "displayName": "STATUS",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "929570cc-74b8-4a7d-aaff-3b303dab0348",
+      "name": "Save to Google Sheets",
+      "type": "n8n-nodes-base.googleSheets",
+      "position": [
+        4864,
+        240
+      ],
+      "typeVersion": 4.7,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "Fcs6UPZJE4vxo68P",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "# 🚀 VIRAL TIKTOK CREATOR - SETUP GUIDE\n\n### 🎥 Watch This Tutorial\n\n@[youtube](YykmUeGVb9U)\n\n\nThis workflow transforms a photo + theme into viral TikTok content automatically.\n\n📋 WHAT YOU NEED:\n✓ Telegram Bot Token\n✓ ElevenLabs API Key + Voice ID\n✓ veed.io API Key with FAL.ai \n✓ Blotato API Key\n✓ Google Sheets Document\n✓ OpenAI API Key\n✓ Perplexity API Key\n\n## ⚡ Setup\n1. Import this workflow into your n8n instance.  \n2. Connect your Google Sheets, Gmail, and Google Calendar credentials. Tutorial: [Configure Your Google Sheets, Gmail, Calendar Credentials](https://youtu.be/fDzVmdw7bNU)  \n3. Connect Your Data in Google Sheets. Data must follow this format: [Sample Sheets Data](https://docs.google.com/spreadsheets/d/1G1hS5pEJb4PdPYuChl_ZLNCQNH8CaG6iSa-Ip9W1cTI/edit?usp=sharing/copy)  \n\n---\n## 📬 Need Help or Want to Customize This?\n**Contact me for consulting and support:** [LinkedIn](https://www.linkedin.com/in/dr-firas/) / [YouTube](https://www.youtube.com/@DRFIRASS)  ",
+        "height": 1038,
+        "width": 400,
+        "color": 4
+      },
+      "id": "c8a19f42-7bc9-4b1b-a5e3-0baea7b9c499",
+      "name": "Setup Guide - Start Here",
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        368,
+        240
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "content": "# 📱 STEP 1: TELEGRAM BOT SETUP\n\n1. Create a Telegram Bot:\n   • Message @BotFather on Telegram\n   • Send /newbot command\n   • Follow prompts to name your bot\n   • Copy the API token provided\n\n2. Configure Telegram Trigger Node:\n   • Click the \"Telegram Trigger\" node\n   • Add Telegram credentials with your token\n   • Select \"Updates\" to trigger on: Message, Photo\n   • Save the node\n\n3. Test:\n   • Activate the workflow\n   • Send a photo with caption to your bot\n   • Caption = theme (e.g., \"fitness motivation\")\n\n✅ Ready when: Bot responds to messages",
+        "height": 524,
+        "width": 1836,
+        "color": 4
+      },
+      "id": "efd1b243-20b1-4fb0-8bb4-9e4abab3a748",
+      "name": "Step 1 - Telegram Setup",
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        1120,
+        0
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "content": "# 🔑 STEP 2: API KEYS CONFIGURATION\n\nConfigure the \"Workflow Configuration\" node with:\n\n1. ElevenLabs (Voice Synthesis):\n   • Sign up at elevenlabs.io\n   • Get API key from profile settings : https://fal.ai/models/fal-ai/elevenlabs/tts/eleven-v3/api\n   • Create/clone a voice, copy Voice ID\n   • Replace: elevenLabsApiKey, elevenLabsVoiceId\n\n2. FAL.ai (Video Generation):\n   • Sign up at fal.ai\n   • Get API key from dashboard : https://fal.ai/models/veed/fabric-1.0/playground\n   • Replace: falApiKey\n\n✅ All keys added to Workflow Configuration node",
+        "height": 484,
+        "width": 380,
+        "color": 4
+      },
+      "id": "a36cf612-4574-46ae-93ab-9d716bc47fe6",
+      "name": "Step 2 - API Keys Configuration",
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        2528,
+        48
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "content": "# 🤖 STEP 3: AI PROCESSING SETUP\n\n1. Perplexity API (Trend Research):\n   • Sign up at perplexity.ai\n   • Get API key from settings\n   • Add credentials to \"Search Trends\" node\n   • Model: llama-3.1-sonar-large-128k-online\n\n2. OpenAI API (Script & Caption):\n   • Sign up at platform.openai.com\n   • Create API key\n   • Add credentials to both GPT-4 nodes:\n     - \"Generate Script with GPT-4\"\n     - \"Generate Caption with GPT-4\"\n   • Model: gpt-4o\n\n3. Use VEED : https://fal.ai/models/veed/fabric-1.0/api\n   • Sign up at https://fal.ai/\n   • Create fal API key",
+        "height": 484,
+        "width": 1836,
+        "color": 5
+      },
+      "id": "b1b44c15-0110-4455-8564-28072151003a",
+      "name": "Step 3 - AI Processing",
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        2752,
+        48
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "content": "# 🎬 STEP 4: VOICE & VIDEO GENERATION\n\nThese nodes are pre-configured and work automatically:\n\n1. ElevenLabs Voice Synthesis: https://fal.ai/models/fal-ai/elevenlabs/tts/eleven-v3/api\n   • Converts script to natural speech\n   • Uses your cloned voice\n   • Outputs MP3 audio file\n\n2. FAL.ai Video Generation:\n   • Takes your photo + audio\n   • Creates talking video (lip-sync)\n   • Uses VEED Fabric 1.0 model\n   • Syncs mouth movements to audio\n\n3. Download Generated Video:\n   • Retrieves final video file\n   • Prepares for publishing\n\n💡 NO CONFIGURATION NEEDED\n   Just ensure API keys are set in Step 2\n\n✅ Automatic processing - no action required",
+        "height": 1136,
+        "width": 380,
+        "color": 5
+      },
+      "id": "e4bffba4-af5b-4f5c-a62d-9f3d81e60f9e",
+      "name": "Step 4 - Voice & Video Generation",
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        5408,
+        -736
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "content": "\n\n\n\n\n# 📤 STEP 5: PUBLISHING & TRACKING\n\n### Install the Blotato [Blotato](https://blotato.com/?ref=firas) Node in n8n (Community Nodes)\n1. In n8n, open **Settings → Community Nodes**.  \n2. Click **Install**, then add: `@blotato/n8n-nodes-blotato`.  \n3. Log in to **Blotato**.  \n4. Go to **Settings → API Keys**.  \n5. In n8n → **Credentials → New**.  \n6. Choose **Blotato API** \n(provided by the community node you installed).  \n\n2. TikTok Publishing (Blotato):\n   • Pre-configured to auto-publish\n   • Uses caption from GPT-4\n   • Privacy: Public\n   • Requires Blotato API key from Step 2",
+        "height": 660,
+        "width": 2124,
+        "color": 5
+      },
+      "id": "13bcba21-2e94-4d66-9ebe-68f616c483f7",
+      "name": "Step 5 - Publishing",
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        3904,
+        -208
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "content": "# ⚡ HOW IT WORKS - WORKFLOW FLOW\n\n1️⃣ You send: Photo + Theme via Telegram\n   ↓\n2️⃣ Perplexity finds: Current viral trends\n   ↓\n3️⃣ GPT-4 creates: 10-second viral script\n   ↓\n4️⃣ ElevenLabs generates: Voice audio (MP3)\n   ↓\n5️⃣ FAL.ai creates: Talking video from photo\n   ↓\n6️⃣ GPT-4 writes: Optimized caption + hashtags\n   ↓\n7️⃣ Saves to: Google Sheets (tracking)\n   ↓\n8️⃣ Publishes to: TikTok automatically\n\n⏱️ TOTAL TIME: ~2-3 minutes\n🎯 RESULT: Viral TikTok video published!\n\n💡 USAGE:\n   Send photo with caption \"fitness tips\"\n   → Get viral fitness video on TikTok",
+        "height": 546,
+        "width": 396,
+        "color": 4
+      },
+      "id": "81b09147-e1dc-48dc-a8a1-f66e4babd1dd",
+      "name": "How It Works",
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        368,
+        1312
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "resource": "file",
+        "fileId": "={{ $json.photoUrl }}",
+        "additionalFields": {}
+      },
+      "id": "5ecbd4f1-d8b5-44a7-b671-7ef29b612955",
+      "name": "Get Photo File from Telegram",
+      "type": "n8n-nodes-base.telegram",
+      "position": [
+        1920,
+        368
+      ],
+      "webhookId": "466a3150-51b2-422e-841b-79f03d9a7317",
+      "typeVersion": 1.2,
+      "credentials": {
+        "telegramApi": {
+          "id": "6RoGxZEIyk1y4bnU",
+          "name": "Anubis_bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://tmpfiles.org/api/v1/upload",
+        "sendBody": true,
+        "contentType": "multipart-form-data",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "parameterType": "formBinaryData",
+              "name": "file",
+              "inputDataFieldName": "audio_mp3"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "id": "0d06342a-4973-4096-acd4-f8deaa4d3360",
+      "name": "Upload Audio to Public URL",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [
+        3392,
+        368
+      ],
+      "typeVersion": 4.2
+    },
+    {
+      "parameters": {
+        "jsCode": "return items.map(item => {\n  const b = item.binary?.audio;            // <-- ta propriété binaire actuelle\n  if (!b) return item;\n\n  // clone sous un nouveau nom de propriété\n  item.binary.audio_mp3 = {\n    ...b,\n    fileName: (b.fileName || 'audio.mp3').replace(/\\.mpga$/i, '.mp3'),\n    mimeType: 'audio/mpeg'\n  };\n\n  // (optionnel) garder l’original:\n  // delete item.binary.audio;\n\n  return item;\n});\n"
+      },
+      "id": "8babaa0f-2c5e-40bb-804d-508138bff8a4",
+      "name": "Convert .mpga to .mp3",
+      "type": "n8n-nodes-base.code",
+      "position": [
+        3168,
+        368
+      ],
+      "typeVersion": 2
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://tmpfiles.org/api/v1/upload",
+        "sendBody": true,
+        "contentType": "multipart-form-data",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "parameterType": "formBinaryData",
+              "name": "file",
+              "inputDataFieldName": "data"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "id": "8bd012a0-1e03-4d69-bca4-350c0065bca2",
+      "name": "Build Public Image URL",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [
+        2144,
+        368
+      ],
+      "typeVersion": 4.2
+    },
+    {
+      "parameters": {
+        "amount": 30
+      },
+      "id": "11873626-3cbc-441f-bc72-d5e1fa2f65a7",
+      "name": "Wait for VEED",
+      "type": "n8n-nodes-base.wait",
+      "position": [
+        4288,
+        464
+      ],
+      "webhookId": "55faa42e-6509-40b5-a589-48c1db44727f",
+      "typeVersion": 1.1
+    },
+    {
+      "parameters": {
+        "url": "=https://queue.fal.run/veed/fabric-1.0/requests/{{ $json.request_id }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "={{ $('Workflow Configuration').first().json.falApiKey }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "73fc87ac-459c-4d7f-8874-bbad44c8c1e8",
+      "name": "Download VEED Video",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [
+        4288,
+        240
+      ],
+      "typeVersion": 4.2
+    },
+    {
+      "parameters": {
+        "operation": "sendVideo",
+        "chatId": "={{ $('Telegram Trigger').first().json.message.chat.id }}",
+        "file": "={{ $json['URL VIDEO'] }}",
+        "additionalFields": {}
+      },
+      "id": "035b243a-cc2d-4194-b3f2-e45822ecbf8a",
+      "name": "Send a video",
+      "type": "n8n-nodes-base.telegram",
+      "position": [
+        5088,
+        240
+      ],
+      "webhookId": "99e9dbe1-08a3-4d7e-8986-f40bb00cc897",
+      "typeVersion": 1.2,
+      "credentials": {
+        "telegramApi": {
+          "id": "6RoGxZEIyk1y4bnU",
+          "name": "Anubis_bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "appendOrUpdate",
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_GOOGLE_SHEET_ID",
+          "mode": "list",
+          "cachedResultName": "Anubis_Videos",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/YOUR_GOOGLE_SHEET_ID/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Videos",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/YOUR_GOOGLE_SHEET_ID/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "STATUS": "DONE"
+          },
+          "matchingColumns": [
+            "STATUS"
+          ],
+          "schema": [
+            {
+              "id": "IDEA",
+              "displayName": "IDEA",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "URL_IMAGE",
+              "displayName": "URL_IMAGE",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "URL AUDIO",
+              "displayName": "URL AUDIO",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "URL VIDEO",
+              "displayName": "URL VIDEO",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "CAPTION",
+              "displayName": "CAPTION",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "STATUS",
+              "displayName": "STATUS",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "b2cb12fb-ae11-4d82-9d0f-7afbb6b66ed9",
+      "name": "Update Status to \"DONE\"",
+      "type": "n8n-nodes-base.googleSheets",
+      "position": [
+        5536,
+        240
+      ],
+      "typeVersion": 4.5,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "Fcs6UPZJE4vxo68P",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "={{ $('Download VEED Video').item.json.video.url }}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        5312,
+        240
+      ],
+      "id": "9e0281ba-267e-4eed-92ff-97005a8c2925",
+      "name": "Download Video File"
+    },
+    {
+      "parameters": {
+        "url": "=https://queue.fal.run/veed/fabric-1.0/requests/{{ $('FAL.ai Video Generation').item.json.request_id }}/status",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Key {{ $('Workflow Configuration').first().json.falApiKey }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        3840,
+        368
+      ],
+      "id": "fd71a638-35fd-4576-a8cc-983f7d651a68",
+      "name": "Check Status"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "5b3c82dc-ddd6-4506-9c57-24989015ab8a",
+              "leftValue": "={{ $json.status }}",
+              "rightValue": "COMPLETED",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        4064,
+        288
+      ],
+      "id": "bec1b4d1-3aed-4795-91e1-4b59e906903c",
+      "name": "Check Status1"
+    },
+    {
+      "parameters": {
+        "url": "={{ $('Download VEED Video').item.json.video.url }}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        5760,
+        240
+      ],
+      "id": "f3613029-ab06-4990-944e-561632f6bf0b",
+      "name": "HTTP Request"
+    },
+    {
+      "parameters": {
+        "name": "={{ $('Generate Caption with GPT-4').item.json.message.content }}",
+        "driveId": {
+          "__rl": true,
+          "value": "My Drive",
+          "mode": "list",
+          "cachedResultName": "My Drive",
+          "cachedResultUrl": "https://drive.google.com/drive/my-drive"
+        },
+        "folderId": {
+          "__rl": true,
+          "value": "YOUR_GOOGLE_DRIVE_FOLDER_ID",
+          "mode": "list",
+          "cachedResultName": "Anubis_Videos",
+          "cachedResultUrl": "https://drive.google.com/drive/folders/YOUR_GOOGLE_DRIVE_FOLDER_ID"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        5984,
+        240
+      ],
+      "id": "e9dde50d-4816-4f1c-86aa-4d2bf689d2f3",
+      "name": "Upload file",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "9lr1dgL0o1MhXDhy",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.errorTrigger",
+      "typeVersion": 1,
+      "position": [
+        1248,
+        688
+      ],
+      "id": "ac77a9b1-da7c-46c6-8fa8-ad1e16f0b37d",
+      "name": "Error Trigger"
+    },
+    {
+      "parameters": {
+        "chatId": "YOUR_TELEGRAM_CHAT_ID",
+        "text": "=Your video did not post:  {{ $json.execution.error.message }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1472,
+        688
+      ],
+      "id": "123b6073-abaf-419d-aab3-af2df286b924",
+      "name": "Send a text message",
+      "webhookId": "2e7fc4c8-5388-4901-af07-9a78350dd372",
+      "credentials": {
+        "telegramApi": {
+          "id": "6RoGxZEIyk1y4bnU",
+          "name": "Anubis_bot"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Send a video": {
+      "main": [
+        [
+          {
+            "node": "Download Video File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait for VEED": {
+      "main": [
+        [
+          {
+            "node": "Check Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Telegram Trigger": {
+      "main": [
+        [
+          {
+            "node": "Workflow Configuration",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download VEED Video": {
+      "main": [
+        [
+          {
+            "node": "Generate Caption with GPT-4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Convert .mpga to .mp3": {
+      "main": [
+        [
+          {
+            "node": "Upload Audio to Public URL",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save to Google Sheets": {
+      "main": [
+        [
+          {
+            "node": "Send a video",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Public Image URL": {
+      "main": [
+        [
+          {
+            "node": "Search Trends with Perplexity",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Workflow Configuration": {
+      "main": [
+        [
+          {
+            "node": "Extract Photo and Theme",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Photo and Theme": {
+      "main": [
+        [
+          {
+            "node": "Get Photo File from Telegram",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "FAL.ai Video Generation": {
+      "main": [
+        [
+          {
+            "node": "Check Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ElevenLabs Voice Synthesis": {
+      "main": [
+        [
+          {
+            "node": "Convert .mpga to .mp3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Script with GPT-4": {
+      "main": [
+        [
+          {
+            "node": "ElevenLabs Voice Synthesis",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upload Audio to Public URL": {
+      "main": [
+        []
+      ]
+    },
+    "Generate Caption with GPT-4": {
+      "main": [
+        [
+          {
+            "node": "Save to Google Sheets",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Photo File from Telegram": {
+      "main": [
+        [
+          {
+            "node": "Build Public Image URL",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Search Trends with Perplexity": {
+      "main": [
+        [
+          {
+            "node": "Generate Script with GPT-4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download Video File": {
+      "main": [
+        [
+          {
+            "node": "Update Status to \"DONE\"",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Status to \"DONE\"": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Status": {
+      "main": [
+        [
+          {
+            "node": "Check Status1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Status1": {
+      "main": [
+        [
+          {
+            "node": "Download VEED Video",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Wait for VEED",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Upload file",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upload file": {
+      "main": [
+        []
+      ]
+    },
+    "Error Trigger": {
+      "main": [
+        [
+          {
+            "node": "Send a text message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false
+  },
+  "versionId": "de6f92ae-c0f0-458c-96c5-c123c74efc7f",
+  "meta": {
+    "templateId": "10000",
+    "templateCredsSetupCompleted": true,
+    "instanceId": "73b0ef7912b94af41030d669361dedec64742b8175b5827e85bf2c8e375e8312"
+  },
+  "id": "lyibqUrydg6HQVRm",
+  "tags": []
+}

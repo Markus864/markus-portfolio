@@ -1,0 +1,4 @@
+solders==0.27.1
+solana==0.36.11
+base58==2.1.1
+requests==2.32.3

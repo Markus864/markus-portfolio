@@ -1,0 +1,41 @@
+Underlying — Stock/ETF whose price generates the signal (AAPL, SPY, TSLA)
+
+Call Option — Right to buy underlying at strike before expiration
+
+Put Option — Right to sell underlying at strike before expiration
+
+DTE (Days to Expiration) — Days remaining on contract
+
+Strike Price — Price at which option converts to underlying
+
+ITM (In the Money) — Call strike < price; Put strike > price
+
+ATM (At the Money) — Strike ≈ current price
+
+OTM (Out of the Money) — Call strike > price; Put strike < price
+
+Delta — Option sensitivity to $1 move in underlying
+
+Higher delta = moves more like stock
+
+Premium — Price paid per share for contract
+
+Spread — Two-leg trade that defines risk and caps reward
+
+Theta — Time decay reducing options value
+
+Bid/Ask Spread — Difference between buy/sell prices
+
+Open Interest — How many contracts exist; proxy for liquidity
+
+Risk:Reward (R:R) — Reward potential relative to stop loss
+
+Iron Strike prioritizes:
+
+ATM or slightly ITM strikes
+
+Reasonable bid/ask spreads
+
+Avoiding low-liquidity contracts
+
+Defined-risk setups

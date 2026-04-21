@@ -1,0 +1,122 @@
+Iron Strike is a systematic trading framework built to identify directional opportunities in U.S. stocks and ETFs and execute them using listed stock options.
+Iron Strike generates signals using only technical analysis applied to the underlying chart. Options are used strictly as the execution vehicle.
+
+Iron Strike does not use:
+
+Fundamentals
+
+News
+
+Earnings
+
+Social sentiment
+
+AI pattern recognition not rooted in indicators
+
+Order flow or dark pool tracking
+
+“Gut feel” predictions or hype
+
+CORE TECHNICAL SIGNAL ENGINE
+
+Iron Strike identifies opportunities using the following metrics:
+
+RSI (14)
+
+Trend of RSI matters more than absolute value
+
+Bullish = rising toward 60–70 without overbought extremes
+
+Bearish = falling toward 30–40 without extreme oversold
+
+EMA Structure
+
+EMA 50 = trigger bias
+
+EMA 200 = trend anchor
+
+Bullish preference: price above EMA 50 and reclaiming/above EMA 200
+
+Bearish preference: price below EMA 50 and rejecting EMA 200
+
+MACD Histogram & Signal
+
+Bullish crossover or rising histogram confirms long
+
+Bearish crossover or negative histogram confirms short
+
+Volume
+
+Must be rising or stable
+
+Declining volume = weak setup
+
+Support/Resistance Price Context
+
+Pullback to support = bullish opportunity
+
+Rejection at resistance = bearish opportunity
+
+DIRECTION QUALIFICATION
+
+Signals require a stack of aligned evidence.
+
+Valid Long
+
+Price above/reclaiming EMA50
+
+Trend supportive relative to EMA200
+
+RSI rising but not overheated
+
+MACD momentum turning positive
+
+Volume confirms move
+
+Support respected
+
+Valid Short
+
+Price below/rejecting EMA50
+
+Trend supportive relative to EMA200
+
+RSI falling but not exhausted
+
+MACD momentum negative
+
+Volume supports selling
+
+Resistance shows rejection
+
+ANY failure = No Trade
+
+MULTI-TIMEFRAME CONFIRMATION
+
+Iron Strike denies trades unless two timeframes agree:
+
+Daily (1D) = Trend bias & context
+
+4H (4-hour) = Trigger signal
+
+No-trade if:
+
+Daily trend disagrees with 4H structure
+
+Underlying at a major inflection point without clarity
+
+OUTPUT
+
+Signals include:
+
+Direction
+
+Entry zone
+
+Stop loss (structural invalidation)
+
+2–3 take-profit targets (1:2 RR minimum)
+
+Timeframe commentary
+
+Option execution preference

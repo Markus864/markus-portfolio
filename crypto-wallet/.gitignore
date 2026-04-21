@@ -1,0 +1,34 @@
+# Secrets — NEVER commit these
+*.json
+!package.json
+!package-lock.json
+phantom_wallet.txt
+.env
+*.key
+*.pem
+
+# Vault / credentials
+openclaw_vault.json
+credentials/
+
+# Claude Code local settings (contains approved commands with tokens)
+.claude/settings.local.json
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+venv/
+.venv/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs / state
+*.log
+state.json
+.tg_offset
+
+# Backtest data cache
+tool-results/

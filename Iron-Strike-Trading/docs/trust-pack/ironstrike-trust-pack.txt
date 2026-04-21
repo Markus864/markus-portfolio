@@ -1,0 +1,918 @@
+================================================================================
+IRONSTRIKE OPTIONS - CANONICAL SIGNAL SCHEMA TRUST PACK EXPORT
+Generated: 2024-12-12
+Purpose: External architect review for schema consistency, nullability safety, and analytics-readiness
+================================================================================
+
+TABLE OF CONTENTS
+1. Schema Definitions (Drizzle pgTable blocks)
+2. Zod Validation Schemas
+3. API Routes & Handlers
+4. DB Write Paths (Insert/Update operations)
+5. Canonical Full Signal Object (Runtime Shape)
+6. DB Relationship Map
+7. Nullability & Trust Audit
+
+================================================================================
+SECTION 1: SCHEMA DEFINITIONS (Drizzle pgTable blocks)
+================================================================================
+
+=== FILE: shared/schema.ts ===
+
+// ---------- sessions ----------
+export const sessions = pgTable(
+  "sessions",
+  {
+    sid: varchar("sid").primaryKey(),
+    sess: jsonb("sess").notNull(),
+    expire: timestamp("expire").notNull(),
+  },
+  (table) => [index("IDX_session_expire").on(table.expire)],
+);
+
+// ---------- users ----------
+export const users = pgTable("users", {
+  id: varchar("id", { length: 255 }).primaryKey(),
+  email: varchar("email", { length: 255 }),
+  firstName: varchar("first_name", { length: 100 }),
+  lastName: varchar("last_name", { length: 100 }),
+  profileImageUrl: text("profile_image_url"),
+  role: varchar("role", { length: 20 }).notNull().default("free"),
+  stripeCustomerId: varchar("stripe_customer_id", { length: 255 }),
+  timezone: varchar("timezone", { length: 50 }).default("America/New_York"),
+  telegramChatId: varchar("telegram_chat_id", { length: 100 }),
+  discordWebhookUrl: text("discord_webhook_url"),
+  defaultNotifyEmail: boolean("default_notify_email").notNull().default(true),
+  defaultNotifyTelegram: boolean("default_notify_telegram").notNull().default(false),
+  defaultNotifyDiscord: boolean("default_notify_discord").notNull().default(false),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// ---------- signal_history ----------
+export const signalHistory = pgTable("signal_history", {
+  id: serial("id").primaryKey(),
+  symbol: varchar("symbol", { length: 10 }).notNull(),
+  action: varchar("action", { length: 20 }).notNull(),
+  optionType: varchar("option_type", { length: 10 }),           // NULLABLE
+  optionSide: varchar("option_side", { length: 10 }),           // NULLABLE
+  strikePrice: decimal("strike_price", { precision: 12, scale: 2 }).notNull(),
+  expirationDate: varchar("expiration_date", { length: 20 }).notNull(),
+  currentPrice: decimal("current_price", { precision: 12, scale: 2 }).notNull(),
+  premium: decimal("premium", { precision: 12, scale: 4 }).notNull(),
+  contracts: integer("contracts").notNull(),
+  contractMultiplier: integer("contract_multiplier").notNull().default(100),
+  totalCost: decimal("total_cost", { precision: 12, scale: 2 }).notNull(),
+  maxLoss: varchar("max_loss", { length: 50 }).notNull(),       // VARCHAR - not decimal!
+  maxGain: varchar("max_gain", { length: 50 }),                 // NULLABLE + VARCHAR
+  breakeven: decimal("breakeven", { precision: 12, scale: 2 }).notNull(),
+  confidence: decimal("confidence", { precision: 5, scale: 4 }).notNull(),
+  impliedVolatility: decimal("implied_volatility", { precision: 8, scale: 4 }),  // NULLABLE
+  delta: decimal("delta", { precision: 8, scale: 6 }),          // NULLABLE
+  gamma: decimal("gamma", { precision: 8, scale: 6 }),          // NULLABLE
+  theta: decimal("theta", { precision: 8, scale: 6 }),          // NULLABLE
+  vega: decimal("vega", { precision: 8, scale: 6 }),            // NULLABLE
+  stopLossPercent: decimal("stop_loss_percent", { precision: 5, scale: 2 }).notNull(),
+  takeProfitPercent: decimal("take_profit_percent", { precision: 5, scale: 2 }).notNull(),
+  reasoning: text("reasoning"),                                  // NULLABLE
+  accountSize: decimal("account_size", { precision: 12, scale: 2 }).notNull(),
+  riskPercentage: decimal("risk_percentage", { precision: 5, scale: 4 }).notNull(),
+  generatedAt: timestamp("generated_at").defaultNow().notNull(),
+});
+
+// ---------- trade_executions ----------
+export const tradeExecutions = pgTable("trade_executions", {
+  id: serial("id").primaryKey(),
+  signalId: integer("signal_id"),                               // NULLABLE (for manual trades)
+  userId: varchar("user_id", { length: 100 }),                  // NULLABLE
+  symbol: varchar("symbol", { length: 10 }).notNull(),
+  action: varchar("action", { length: 20 }).notNull(),
+  optionType: varchar("option_type", { length: 10 }),           // NULLABLE
+  optionSide: varchar("option_side", { length: 10 }),           // NULLABLE
+  strikePrice: decimal("strike_price", { precision: 12, scale: 2 }),  // NULLABLE
+  expirationDate: varchar("expiration_date", { length: 20 }),   // NULLABLE
+  entryPremium: decimal("entry_premium", { precision: 12, scale: 4 }).notNull(),
+  exitPremium: decimal("exit_premium", { precision: 12, scale: 4 }),  // NULLABLE (until closed)
+  contracts: integer("contracts").notNull(),
+  contractMultiplier: integer("contract_multiplier").notNull().default(100),
+  totalCost: decimal("total_cost", { precision: 12, scale: 2 }).notNull(),
+  targetPremiumPercent: decimal("target_premium_percent", { precision: 8, scale: 2 }),  // NULLABLE
+  stopLossPremiumPercent: decimal("stop_loss_premium_percent", { precision: 8, scale: 2 }),  // NULLABLE
+  status: varchar("status", { length: 20 }).notNull().default("open"),
+  profitLoss: decimal("profit_loss", { precision: 12, scale: 2 }),  // NULLABLE (until closed)
+  profitLossPercent: decimal("profit_loss_percent", { precision: 8, scale: 4 }),  // NULLABLE
+  executedAt: timestamp("executed_at").defaultNow().notNull(),
+  closedAt: timestamp("closed_at"),                             // NULLABLE
+  notes: text("notes"),                                         // NULLABLE
+  
+  // Journal fields (TradeZella-style)
+  source: varchar("source", { length: 20 }).notNull().default("ironstrike"),
+  assetType: varchar("asset_type", { length: 20 }).notNull().default("option"),
+  strategyTag: varchar("strategy_tag", { length: 100 }),        // NULLABLE
+  tagList: text("tag_list"),                                    // NULLABLE (JSON array)
+  sessionTag: varchar("session_tag", { length: 20 }),           // NULLABLE
+  emotionalState: varchar("emotional_state", { length: 20 }),   // NULLABLE
+  whatWentWell: text("what_went_well"),                         // NULLABLE
+  whatWentWrong: text("what_went_wrong"),                       // NULLABLE
+  lessonLearned: text("lesson_learned"),                        // NULLABLE
+  screenshotUrl: text("screenshot_url"),                        // NULLABLE
+  
+  // R-multiple tracking
+  plannedRiskPerTrade: decimal("planned_risk_per_trade", { precision: 12, scale: 2 }),  // NULLABLE
+  plannedStopPrice: decimal("planned_stop_price", { precision: 12, scale: 4 }),         // NULLABLE
+  plannedTakeProfitPrice: decimal("planned_take_profit_price", { precision: 12, scale: 4 }),  // NULLABLE
+  realizedRMultiple: decimal("realized_r_multiple", { precision: 8, scale: 4 }),        // NULLABLE
+});
+
+// ---------- trade_journal_entries ----------
+export const tradeJournalEntries = pgTable("trade_journal_entries", {
+  id: serial("id").primaryKey(),
+  tradeId: integer("trade_id").notNull(),                       // FK to trade_executions
+  entryType: varchar("entry_type", { length: 20 }).notNull(),
+  content: text("content").notNull(),
+  tags: text("tags"),                                           // NULLABLE (JSON array)
+  mood: varchar("mood", { length: 20 }),                        // NULLABLE
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+// ---------- signal_outcomes (Adaptive Learning) ----------
+export const signalOutcomes = pgTable("signal_outcomes", {
+  id: serial("id").primaryKey(),
+  signalId: integer("signal_id").notNull(),                     // FK to signal_history
+  symbol: varchar("symbol", { length: 10 }).notNull(),
+  action: varchar("action", { length: 20 }).notNull(),
+  optionType: varchar("option_type", { length: 10 }).notNull(),
+  strikePrice: decimal("strike_price", { precision: 12, scale: 2 }).notNull(),
+  expirationDate: varchar("expiration_date", { length: 20 }).notNull(),
+  entryPrice: decimal("entry_price", { precision: 12, scale: 2 }).notNull(),
+  entryPremium: decimal("entry_premium", { precision: 12, scale: 4 }).notNull(),
+  exitPrice: decimal("exit_price", { precision: 12, scale: 2 }),  // NULLABLE (until evaluated)
+  exitPremium: decimal("exit_premium", { precision: 12, scale: 4 }),  // NULLABLE
+  predictedDirection: varchar("predicted_direction", { length: 10 }).notNull(),
+  actualDirection: varchar("actual_direction", { length: 10 }),  // NULLABLE (until evaluated)
+  originalConfidence: decimal("original_confidence", { precision: 5, scale: 4 }).notNull(),
+  marketCondition: varchar("market_condition", { length: 20 }),  // NULLABLE
+  wasSuccessful: integer("was_successful"),                      // NULLABLE (1=win, 0=loss, null=pending)
+  profitLossPercent: decimal("profit_loss_percent", { precision: 8, scale: 4 }),  // NULLABLE
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  evaluatedAt: timestamp("evaluated_at"),                        // NULLABLE
+});
+
+// ---------- trading_strategies ----------
+export const tradingStrategies = pgTable("trading_strategies", {
+  id: serial("id").primaryKey(),
+  name: varchar("name", { length: 100 }).notNull(),
+  description: text("description"),                              // NULLABLE
+  action: varchar("action", { length: 20 }).notNull(),
+  conditionGroups: text("condition_groups").notNull(),           // JSON string
+  enabled: integer("enabled").notNull().default(1),
+  priority: integer("priority").notNull().default(50),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// ---------- watchlist ----------
+export const watchlist = pgTable("watchlist", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id", { length: 255 }),                   // NULLABLE
+  symbol: varchar("symbol", { length: 10 }).notNull(),
+  addedAt: timestamp("added_at").defaultNow().notNull(),
+  notes: text("notes"),                                          // NULLABLE
+});
+
+// ---------- price_alerts ----------
+export const priceAlerts = pgTable("price_alerts", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id", { length: 255 }),                   // NULLABLE
+  symbol: varchar("symbol", { length: 10 }).notNull(),
+  targetPrice: decimal("target_price", { precision: 12, scale: 2 }).notNull(),
+  condition: varchar("condition", { length: 10 }).notNull(),
+  status: varchar("status", { length: 20 }).notNull().default("ACTIVE"),
+  notifyEmail: boolean("notify_email").notNull().default(false),
+  notifyTelegram: boolean("notify_telegram").notNull().default(false),
+  notifyDiscord: boolean("notify_discord").notNull().default(false),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  triggeredAt: timestamp("triggered_at"),                        // NULLABLE
+});
+
+
+================================================================================
+SECTION 2: ZOD VALIDATION SCHEMAS
+================================================================================
+
+=== FILE: shared/schema.ts ===
+
+// ----- Enums -----
+export const optionTypeSchema = z.enum(["CALL", "PUT"]);
+export const optionSideSchema = z.enum(["LONG", "SHORT"]);
+export const optionActionSchema = z.enum(["BUY_CALL", "BUY_PUT", "SELL_CALL", "SELL_PUT", "HOLD"]);
+export const tierSchema = z.enum(["free", "pro", "premium"]);
+export const tradeSourceSchema = z.enum(["ironstrike", "manual", "external"]);
+export const assetTypeSchema = z.enum(["option", "equity"]);
+export const sessionTagSchema = z.enum(["premarket", "us_open", "midday", "power_hour", "afterhours", "overnight"]);
+export const emotionalStateSchema = z.enum(["calm", "confident", "anxious", "fearful", "greedy", "frustrated", "excited", "neutral"]);
+export const riskProfileNameSchema = z.enum(["UltraConservative", "Conservative", "Balanced", "Growth", "Aggressive"]);
+
+// ----- Greeks Schema -----
+export const greeksSchema = z.object({
+  delta: z.number().min(-1).max(1),
+  gamma: z.number(),
+  theta: z.number(),
+  vega: z.number(),
+  rho: z.number().optional(),
+});
+
+// ----- Signal Request Schema (Input) -----
+export const signalRequestSchema = z.object({
+  symbols: z.array(z.string().min(1).max(10)).min(1).max(10),
+  preferredExpiry: z.enum(["weekly", "monthly", "45_days"]).optional().default("monthly"),
+  preferredDelta: z.number().min(0.1).max(0.9).optional().default(0.3),
+  tier: tierSchema.optional().default("premium"),
+  accountSize: z.number().min(100).max(10000000).optional().default(5000),
+  riskProfile: riskProfileNameSchema.optional().default("Balanced"),
+});
+
+// ----- Selected Contract Schema -----
+export const selectedContractSchema = z.object({
+  symbol: z.string(),
+  expirationDate: z.string(),
+  strike: z.number(),
+  type: z.enum(["call", "put"]),
+  mid: z.number().nullable(),
+  bid: z.number().nullable(),
+  ask: z.number().nullable(),
+  delta: z.number().nullable(),
+  gamma: z.number().nullable(),
+  theta: z.number().nullable(),
+  vega: z.number().nullable(),
+  impliedVolatility: z.number().nullable().optional(),
+  openInterest: z.number().nullable(),
+  volume: z.number().nullable(),
+});
+
+// ----- Position Preview Schema -----
+export const positionPreviewSchema = z.object({
+  premium: z.number(),
+  contractMultiplier: z.number(),
+  costPerContract: z.number(),
+});
+
+// ----- Trading Signal Schema (Output) -----
+export const tradingSignalSchema = z.object({
+  symbol: z.string(),
+  action: optionActionSchema,
+  optionType: optionTypeSchema,
+  optionSide: optionSideSchema,
+  strikePrice: z.number().min(0).nullable().optional(),           // CAN BE NULL
+  expirationDate: z.string().optional(),                          // CAN BE UNDEFINED
+  currentPrice: z.number().min(0),
+  premium: z.number().min(0).nullable().optional(),               // CAN BE NULL
+  contracts: z.number().min(0).nullable().optional(),             // CAN BE NULL
+  contractMultiplier: z.number().default(100),
+  totalCost: z.number().min(0).nullable().optional(),             // CAN BE NULL
+  maxLoss: z.union([z.number().min(0), z.string()]).nullable().optional(),  // CAN BE NULL + string/number
+  maxGain: z.union([z.number(), z.string()]).nullable().optional(),         // CAN BE NULL + string/number
+  breakeven: z.number().min(0).nullable().optional(),             // CAN BE NULL
+  confidence: z.number().min(0).max(1),
+  impliedVolatility: z.number().min(0).optional(),
+  greeks: greeksSchema.optional(),                                // CAN BE UNDEFINED
+  stopLossPercent: z.number().min(0).max(100).optional(),         // CAN BE UNDEFINED
+  takeProfitPercent: z.number().min(0).optional(),                // CAN BE UNDEFINED
+  reasoning: z.string().optional(),
+  
+  // Risk Model B fields
+  selectedContract: selectedContractSchema.nullable().optional(),
+  positionPreview: positionPreviewSchema.nullable().optional(),
+  riskProfileUsed: riskProfileNameSchema.nullable().optional(),
+  effectiveRiskPercent: z.number().min(0).max(1).nullable().optional(),
+  isUnaffordable: z.boolean().optional(),
+  unaffordableReason: z.string().optional(),
+  riskViolation: z.boolean().optional(),
+});
+
+// ----- Manual Trade Input Schema -----
+export const manualTradeInputSchema = z.object({
+  symbol: z.string().min(1).max(10),
+  assetType: assetTypeSchema.default("option"),
+  action: z.string().min(1),
+  optionType: optionTypeSchema.optional(),
+  optionSide: optionSideSchema.optional(),
+  strikePrice: z.number().min(0).optional(),
+  expirationDate: z.string().optional(),
+  entryPremium: z.number().min(0),
+  contracts: z.number().min(1),
+  totalCost: z.number().min(0).optional(),
+  strategyTag: z.string().max(100).optional(),
+  tagList: z.array(z.string()).optional(),
+  sessionTag: sessionTagSchema.optional(),
+  emotionalState: emotionalStateSchema.optional(),
+  whatWentWell: z.string().optional(),
+  whatWentWrong: z.string().optional(),
+  lessonLearned: z.string().optional(),
+  screenshotUrl: z.string().url().optional().or(z.literal("")),
+  notes: z.string().optional(),
+  plannedRiskPerTrade: z.number().min(0).optional(),
+  plannedStopPrice: z.number().min(0).optional(),
+  plannedTakeProfitPrice: z.number().min(0).optional(),
+});
+
+// ----- Trade Journal Update Schema -----
+export const tradeJournalUpdateSchema = z.object({
+  strategyTag: z.string().max(100).optional(),
+  tagList: z.array(z.string()).optional(),
+  sessionTag: sessionTagSchema.optional(),
+  emotionalState: emotionalStateSchema.optional(),
+  whatWentWell: z.string().optional(),
+  whatWentWrong: z.string().optional(),
+  lessonLearned: z.string().optional(),
+  screenshotUrl: z.string().url().optional().or(z.literal("")),
+  notes: z.string().optional(),
+  plannedRiskPerTrade: z.union([z.string(), z.number()]).optional(),
+  plannedStopPrice: z.union([z.string(), z.number()]).optional(),
+  plannedTakeProfitPrice: z.union([z.string(), z.number()]).optional(),
+});
+
+// ----- Performance Metrics Schema -----
+export const performanceMetricsSchema = z.object({
+  totalTrades: z.number(),
+  openTrades: z.number(),
+  closedTrades: z.number(),
+  winningTrades: z.number(),
+  losingTrades: z.number(),
+  winRate: z.number(),
+  averageProfit: z.number(),
+  averageLoss: z.number(),
+  totalProfitLoss: z.number(),
+  bestTrade: z.object({
+    symbol: z.string(),
+    profitLossPercent: z.number(),
+  }).nullable(),
+  worstTrade: z.object({
+    symbol: z.string(),
+    profitLossPercent: z.number(),
+  }).nullable(),
+  profitFactor: z.number(),
+  expectancy: z.number(),
+});
+
+// ----- Adaptive Learning Schema -----
+export const adaptiveLearningSchema = z.object({
+  symbol: z.string(),
+  totalSignals: z.number(),
+  successfulSignals: z.number(),
+  failedSignals: z.number(),
+  pendingSignals: z.number(),
+  successRate: z.number().min(0).max(1),
+  avgConfidenceAdjustment: z.number(),
+  recentTrend: z.enum(["IMPROVING", "DECLINING", "STABLE"]),
+  lastUpdated: z.string().or(z.date()),
+  marketConditionAccuracy: z.record(z.number()),
+});
+
+// ----- Insert Schemas (Drizzle-Zod) -----
+export const insertSignalHistorySchema = createInsertSchema(signalHistory).omit({
+  id: true,
+  generatedAt: true,
+});
+
+export const insertTradeExecutionSchema = createInsertSchema(tradeExecutions).omit({
+  id: true,
+  executedAt: true,
+});
+
+export const insertTradeJournalEntrySchema = createInsertSchema(tradeJournalEntries).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertSignalOutcomeSchema = createInsertSchema(signalOutcomes).omit({
+  id: true,
+  createdAt: true,
+});
+
+
+================================================================================
+SECTION 3: API ROUTES & HANDLERS (Key Endpoints)
+================================================================================
+
+=== FILE: server/routes.ts ===
+
+// ----- POST /api/signals - Generate options trading signals -----
+app.post("/api/signals", async (req, res) => {
+  // Validation
+  const validation = signalRequestSchema.safeParse(req.body);
+  if (!validation.success) return res.status(400).json({ error, details });
+  
+  const { symbols, preferredDelta, accountSize, riskProfile } = validation.data;
+  
+  // Tier resolved from user subscription (NOT client request)
+  const { userId } = getAuth(req);
+  const user = userId ? await storage.getUser(userId) : null;
+  const tier = resolveUserTier(user);
+  
+  // Beta symbol filtering
+  const allowedSymbols = symbols.filter(s => BETA_ALLOWED_SYMBOLS.includes(s.toUpperCase()));
+  
+  // Get prices, AI analysis, expiration configs
+  // Generate signals with real contract data from Tradier API
+  // Save to signal_history
+  const [saved] = await db.insert(signalHistory).values(signalData).returning();
+  
+  res.json({ signals, tier, generatedAt });
+});
+
+// ----- GET /api/signals/history - Get signal history -----
+app.get("/api/signals/history", async (req, res) => {
+  const history = await storage.getAllSignalHistory();
+  res.json(history);
+});
+
+// ----- POST /api/trades - Execute a trade from a signal -----
+app.post("/api/trades", requireAuth(), async (req, res) => {
+  const validation = executeTradeSchema.safeParse(req.body);
+  if (!validation.success) return res.status(400).json({ error, details });
+  
+  const trade = await storage.executeTrade(validation.data);
+  res.json(trade);
+});
+
+// ----- GET /api/trades - Get all trades -----
+app.get("/api/trades", async (_req, res) => {
+  const trades = await storage.getAllTrades();
+  res.json(trades);
+});
+
+// ----- POST /api/trades/manual - Log a manual trade -----
+app.post("/api/trades/manual", requireAuth(), async (req, res) => {
+  const validation = manualTradeInputSchema.safeParse(req.body);
+  if (!validation.success) return res.status(400).json({ error, details });
+  
+  const trade = await storage.createManualTrade(tradeData);
+  res.status(201).json(trade);
+});
+
+// ----- POST /api/trades/parse-screenshot - Parse trade screenshot with AI -----
+app.post("/api/trades/parse-screenshot", requireAuth(), upload.single("image"), async (req, res) => {
+  // Tier gating: Pro/Premium required
+  if (tier === "free" && !isDeveloper(userId)) {
+    return res.status(403).json({ error: "Screenshot upload is available to Pro and Premium users only." });
+  }
+  
+  // OpenAI Vision API call to parse screenshot
+  // Model selection: GPT-4o for premium, GPT-4o-mini for pro
+  // Parse JSON response, calculate P&L if closed
+  // Create trade entry
+  const trade = await storage.createManualTrade(tradeData);
+  
+  res.status(201).json({
+    success: true,
+    trade,
+    parsed: parsedTrade,
+    aiReview,  // Premium only
+    parseConfidence,
+    needsReview,
+  });
+});
+
+// ----- PATCH /api/trades/:id - Update trade journal fields -----
+app.patch("/api/trades/:id", requireAuth(), async (req, res) => {
+  const validation = tradeJournalUpdateSchema.safeParse(req.body);
+  if (!validation.success) return res.status(400).json({ error, details });
+  
+  const updated = await storage.updateTradeJournal(parseInt(id), validation.data);
+  res.json(updated);
+});
+
+// ----- POST /api/trades/:id/close - Close an options trade -----
+app.post("/api/trades/:id/close", requireAuth(), async (req, res) => {
+  const { exitPremium, notes, entryPremium } = req.body;
+  const closed = await storage.closeTrade(parseInt(id), exitPremium, notes, entryPremium);
+  res.json(closed);
+});
+
+// ----- GET /api/journal/summary - Tier-gated trading journal summary -----
+app.get("/api/journal/summary", requireAuth(), async (req, res) => {
+  // Free: Basic metrics (total trades, wins, losses, win rate, total P&L)
+  // Pro: R-multiple tracking (avgRMultiple, expectancy, bestRMultiple, worstRMultiple)
+  // Premium: Psychology insights (emotion breakdown, session breakdown)
+  res.json(summary);
+});
+
+// ----- GET /api/adaptive/summary - Adaptive learning summary (tier-gated) -----
+app.get("/api/adaptive/summary", requireAuth(), async (req, res) => {
+  // Free: Blocked (403)
+  // Pro: Per-symbol access only via ?symbol=XYZ
+  // Premium: Full access to all symbol metrics
+  res.json(metrics);
+});
+
+// ----- GET /api/portfolio/summary - Portfolio summary -----
+app.get("/api/portfolio/summary", async (_req, res) => {
+  const summary = await storage.getPortfolioSummary();
+  res.json(summary);
+});
+
+
+================================================================================
+SECTION 4: DB WRITE PATHS (Insert/Update Operations)
+================================================================================
+
+=== FILE: server/storage.ts ===
+
+// ----- Signal History Insert -----
+async saveSignalHistory(signal: InsertSignalHistory): Promise<SelectSignalHistory> {
+  const [saved] = await db.insert(signalHistory).values(signal).returning();
+  return saved;
+}
+
+// ----- Trade Execution Insert -----
+async executeTrade(trade: InsertTradeExecution): Promise<SelectTradeExecution> {
+  // Normalize values, validate
+  const [executed] = await db.insert(tradeExecutions).values(normalizedTrade).returning();
+  return executed;
+}
+
+// ----- Manual Trade Insert -----
+async createManualTrade(trade: InsertTradeExecution): Promise<SelectTradeExecution> {
+  const [created] = await db.insert(tradeExecutions).values({
+    ...trade,
+    source: "manual",
+    status: "open",
+  }).returning();
+  return created;
+}
+
+// ----- Trade Close Update -----
+async closeTrade(id: number, exitPremium: number, notes?: string, updatedEntryPremium?: number): Promise<SelectTradeExecution> {
+  const updateData = {
+    exitPremium,
+    status,
+    profitLoss,
+    profitLossPercent,
+    realizedRMultiple,
+    closedAt: new Date(),
+    notes,
+    entryPremium,  // If AI parser made a mistake
+  };
+  const [closed] = await db.update(tradeExecutions)
+    .set(updateData)
+    .where(eq(tradeExecutions.id, id))
+    .returning();
+  return closed;
+}
+
+// ----- Trade Journal Update -----
+async updateTradeJournal(id: number, updates: TradeJournalUpdate): Promise<SelectTradeExecution> {
+  const [updated] = await db.update(tradeExecutions)
+    .set(updates)
+    .where(eq(tradeExecutions.id, id))
+    .returning();
+  return updated;
+}
+
+// ----- Signal Outcome Insert -----
+async createSignalOutcome(outcome: InsertSignalOutcome): Promise<SelectSignalOutcome> {
+  const [saved] = await db.insert(signalOutcomes).values(outcome).returning();
+  return saved;
+}
+
+// ----- Signal Outcome Update -----
+async updateSignalOutcome(id: number, updates: Partial<SelectSignalOutcome>): Promise<SelectSignalOutcome | undefined> {
+  const [updated] = await db.update(signalOutcomes)
+    .set(updates)
+    .where(eq(signalOutcomes.id, id))
+    .returning();
+  return updated;
+}
+
+
+================================================================================
+SECTION 5: CANONICAL FULL SIGNAL OBJECT (RUNTIME SHAPE)
+================================================================================
+
+=== TypeScript Interface (derived from tradingSignalSchema) ===
+
+interface TradingSignal {
+  // Core identifiers
+  symbol: string;                    // REQUIRED
+  action: "BUY_CALL" | "BUY_PUT" | "SELL_CALL" | "SELL_PUT" | "HOLD";  // REQUIRED
+  optionType: "CALL" | "PUT";        // REQUIRED
+  optionSide: "LONG" | "SHORT";      // REQUIRED
+  
+  // Contract details
+  strikePrice: number | null;        // NULLABLE
+  expirationDate?: string;           // OPTIONAL
+  
+  // Pricing
+  currentPrice: number;              // REQUIRED
+  premium: number | null;            // NULLABLE
+  contracts: number | null;          // NULLABLE
+  contractMultiplier: number;        // REQUIRED (default: 100)
+  totalCost: number | null;          // NULLABLE
+  
+  // Risk/Reward
+  maxLoss: number | string | null;   // NULLABLE + mixed type
+  maxGain: number | string | null;   // NULLABLE + mixed type
+  breakeven: number | null;          // NULLABLE
+  stopLossPercent?: number;          // OPTIONAL
+  takeProfitPercent?: number;        // OPTIONAL
+  
+  // Confidence
+  confidence: number;                // REQUIRED (0-1)
+  impliedVolatility?: number;        // OPTIONAL
+  
+  // Greeks
+  greeks?: {                         // OPTIONAL
+    delta: number;                   // -1 to 1
+    gamma: number;
+    theta: number;
+    vega: number;
+    rho?: number;
+  };
+  
+  // Analysis
+  reasoning?: string;                // OPTIONAL
+  
+  // Risk Model B fields
+  selectedContract?: {               // OPTIONAL
+    symbol: string;
+    expirationDate: string;
+    strike: number;
+    type: "call" | "put";
+    mid: number | null;
+    bid: number | null;
+    ask: number | null;
+    delta: number | null;
+    gamma: number | null;
+    theta: number | null;
+    vega: number | null;
+    impliedVolatility?: number | null;
+    openInterest: number | null;
+    volume: number | null;
+  } | null;
+  
+  positionPreview?: {                // OPTIONAL
+    premium: number;
+    contractMultiplier: number;
+    costPerContract: number;
+  } | null;
+  
+  riskProfileUsed?: "UltraConservative" | "Conservative" | "Balanced" | "Growth" | "Aggressive" | null;
+  effectiveRiskPercent?: number | null;
+  isUnaffordable?: boolean;
+  unaffordableReason?: string;
+  riskViolation?: boolean;
+}
+
+=== Realistic JSON Example ===
+
+{
+  "symbol": "AAPL",
+  "action": "BUY_CALL",
+  "optionType": "CALL",
+  "optionSide": "LONG",
+  "strikePrice": 195.00,
+  "expirationDate": "2024-12-20",
+  "currentPrice": 192.45,
+  "premium": 3.85,
+  "contracts": 2,
+  "contractMultiplier": 100,
+  "totalCost": 770.00,
+  "maxLoss": 770.00,
+  "maxGain": "Unlimited",
+  "breakeven": 198.85,
+  "stopLossPercent": 50,
+  "takeProfitPercent": 100,
+  "confidence": 0.72,
+  "impliedVolatility": 0.28,
+  "greeks": {
+    "delta": 0.45,
+    "gamma": 0.03,
+    "theta": -0.12,
+    "vega": 0.25
+  },
+  "reasoning": "AAPL showing bullish momentum with RSI at 58. Support at $190, resistance at $200. Weekly calls offer good risk/reward.",
+  "selectedContract": {
+    "symbol": "AAPL",
+    "expirationDate": "2024-12-20",
+    "strike": 195,
+    "type": "call",
+    "mid": 3.85,
+    "bid": 3.75,
+    "ask": 3.95,
+    "delta": 0.45,
+    "gamma": 0.03,
+    "theta": -0.12,
+    "vega": 0.25,
+    "impliedVolatility": 0.28,
+    "openInterest": 15420,
+    "volume": 2340
+  },
+  "positionPreview": {
+    "premium": 3.85,
+    "contractMultiplier": 100,
+    "costPerContract": 385.00
+  },
+  "riskProfileUsed": "Balanced",
+  "effectiveRiskPercent": 0.02,
+  "isUnaffordable": false,
+  "riskViolation": false
+}
+
+
+================================================================================
+SECTION 6: DB RELATIONSHIP MAP
+================================================================================
+
+=== ENTITY RELATIONSHIPS (Plain English) ===
+
+users.id -> signal_history (implicit via userId if added)
+  - No explicit FK defined in signal_history
+  - signals are currently NOT tied to users at DB level
+  
+users.id -> trade_executions.userId (1-to-many)
+  - One user can have many trade executions
+  - trade_executions.userId is NULLABLE (for legacy/anonymous trades)
+  - NO EXPLICIT FK CONSTRAINT DEFINED
+
+signal_history.id -> trade_executions.signalId (1-to-many)
+  - One signal can have multiple trade executions (if executed multiple times)
+  - trade_executions.signalId is NULLABLE (for manual trades without a signal)
+  - NO EXPLICIT FK CONSTRAINT DEFINED
+
+trade_executions.id -> trade_journal_entries.tradeId (1-to-many)
+  - One trade can have multiple journal entries (pre-trade, during, post-trade, lesson)
+  - trade_journal_entries.tradeId is NOT NULL
+  - NO EXPLICIT FK CONSTRAINT DEFINED
+
+signal_history.id -> signal_outcomes.signalId (1-to-1 expected, but allows 1-to-many)
+  - Each signal should have at most one outcome record
+  - signal_outcomes.signalId is NOT NULL
+  - NO EXPLICIT FK CONSTRAINT DEFINED (could have orphan outcomes)
+
+users.id -> watchlist.userId (1-to-many)
+  - One user can have many watchlist items
+  - watchlist.userId is NULLABLE
+  - NO EXPLICIT FK CONSTRAINT DEFINED
+
+users.id -> price_alerts.userId (1-to-many)
+  - One user can have many price alerts
+  - price_alerts.userId is NULLABLE
+  - NO EXPLICIT FK CONSTRAINT DEFINED
+
+
+================================================================================
+SECTION 7: NULLABILITY & TRUST AUDIT
+================================================================================
+
+=== CRITICAL MISMATCHES: Zod Schema vs DB Schema ===
+
+FIELD: strikePrice
+- tradingSignalSchema: z.number().min(0).nullable().optional()  -- CAN BE NULL
+- signalHistory DB: decimal(...).notNull()                      -- CANNOT BE NULL
+- MISMATCH: Runtime can return null, but DB requires value
+- RISK: Insert will fail if null passed to DB
+
+FIELD: expirationDate
+- tradingSignalSchema: z.string().optional()                    -- CAN BE UNDEFINED
+- signalHistory DB: varchar(...).notNull()                      -- CANNOT BE NULL
+- MISMATCH: Runtime can omit field, but DB requires value
+- RISK: Insert will fail if undefined passed to DB
+
+FIELD: premium
+- tradingSignalSchema: z.number().min(0).nullable().optional()  -- CAN BE NULL
+- signalHistory DB: decimal(...).notNull()                      -- CANNOT BE NULL
+- MISMATCH: Runtime can return null, but DB requires value
+- RISK: Insert will fail if null passed to DB
+
+FIELD: contracts
+- tradingSignalSchema: z.number().min(0).nullable().optional()  -- CAN BE NULL
+- signalHistory DB: integer(...).notNull()                      -- CANNOT BE NULL
+- MISMATCH: Runtime can return null, but DB requires value
+- RISK: Insert will fail if null passed to DB
+
+FIELD: totalCost
+- tradingSignalSchema: z.number().min(0).nullable().optional()  -- CAN BE NULL
+- signalHistory DB: decimal(...).notNull()                      -- CANNOT BE NULL
+- MISMATCH: Runtime can return null, but DB requires value
+- RISK: Insert will fail if null passed to DB
+
+FIELD: breakeven
+- tradingSignalSchema: z.number().min(0).nullable().optional()  -- CAN BE NULL
+- signalHistory DB: decimal(...).notNull()                      -- CANNOT BE NULL
+- MISMATCH: Runtime can return null, but DB requires value
+- RISK: Insert will fail if null passed to DB
+
+FIELD: stopLossPercent
+- tradingSignalSchema: z.number().min(0).max(100).optional()    -- CAN BE UNDEFINED
+- signalHistory DB: decimal(...).notNull()                      -- CANNOT BE NULL
+- MISMATCH: Runtime can omit field, but DB requires value
+- RISK: Insert will fail if undefined passed to DB
+
+FIELD: takeProfitPercent
+- tradingSignalSchema: z.number().min(0).optional()             -- CAN BE UNDEFINED
+- signalHistory DB: decimal(...).notNull()                      -- CANNOT BE NULL
+- MISMATCH: Runtime can omit field, but DB requires value
+- RISK: Insert will fail if undefined passed to DB
+
+
+=== MONEY FIELDS STORED AS VARCHAR (Design Smell) ===
+
+FIELD: maxLoss
+- signalHistory DB: varchar("max_loss", { length: 50 })
+- ISSUE: Money field stored as string, not decimal
+- REASON: Supports "Unlimited" string value for certain positions
+- RISK: Cannot aggregate or compare numerically without parsing
+
+FIELD: maxGain
+- signalHistory DB: varchar("max_gain", { length: 50 })
+- ISSUE: Money field stored as string, not decimal
+- REASON: Supports "Unlimited" string value for certain positions
+- RISK: Cannot aggregate or compare numerically without parsing
+
+
+=== MISSING FOREIGN KEY CONSTRAINTS ===
+
+1. trade_executions.signalId -> signal_history.id
+   - No FK constraint defined
+   - Orphan trades possible if signal deleted
+
+2. trade_executions.userId -> users.id
+   - No FK constraint defined
+   - Orphan trades possible if user deleted
+
+3. trade_journal_entries.tradeId -> trade_executions.id
+   - No FK constraint defined
+   - Orphan journal entries possible if trade deleted
+
+4. signal_outcomes.signalId -> signal_history.id
+   - No FK constraint defined
+   - Orphan outcomes possible if signal deleted
+
+5. watchlist.userId -> users.id
+   - No FK constraint defined
+   - Orphan watchlist items possible
+
+6. price_alerts.userId -> users.id
+   - No FK constraint defined
+   - Orphan alerts possible
+
+
+=== GREEKS / SELECTED CONTRACT / POSITION PREVIEW ===
+
+FIELD: greeks
+- tradingSignalSchema: greeksSchema.optional()                  -- OPTIONAL object
+- signalHistory DB: Individual columns (delta, gamma, theta, vega) -- All NULLABLE
+- MATCH: Runtime optional aligns with DB nullable
+- NOTE: Stored as separate columns, not JSONB
+
+FIELD: selectedContract
+- tradingSignalSchema: selectedContractSchema.nullable().optional()
+- signalHistory DB: NOT STORED - runtime-only field
+- NOTE: This is a computed/fetched field, not persisted
+
+FIELD: positionPreview
+- tradingSignalSchema: positionPreviewSchema.nullable().optional()
+- signalHistory DB: NOT STORED - runtime-only field
+- NOTE: This is a computed field, not persisted
+
+
+=== COMPUTED FIELDS STORED INCONSISTENTLY ===
+
+1. realizedRMultiple in trade_executions
+   - Computed during trade close as: profitLoss / plannedRiskPerTrade
+   - Stored in DB as decimal
+   - Depends on plannedRiskPerTrade being set (can be null)
+   - RISK: If plannedRiskPerTrade is null, realizedRMultiple calculation fails or returns null
+
+2. profitLossPercent in trade_executions
+   - Computed during trade close
+   - Formula varies based on isShort position
+   - RISK: Calculation path differs for long vs short, potential inconsistency
+
+
+=== RUNTIME NULL PATHS FOUND ===
+
+1. POST /api/signals
+   - Returns NO_TRADE signals with null contract details:
+   {
+     symbol: "XYZ",
+     action: "HOLD",
+     reason: "NO_TRADE: ...",
+     strikePrice: null,    // <-- These nulls bypass DB save
+     premium: null,
+     contracts: null,
+   }
+   - SAFE: NO_TRADE signals are not saved to signal_history
+
+2. POST /api/trades/parse-screenshot
+   - AI parsing may return null for:
+     - strikePrice (if not visible in screenshot)
+     - expirationDate (if not visible)
+   - Creates trade with null values
+   - SAFE: trade_executions allows null for these fields
+
+
+================================================================================
+END OF TRUST PACK EXPORT
+================================================================================

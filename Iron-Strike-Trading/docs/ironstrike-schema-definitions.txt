@@ -1,0 +1,498 @@
+================================================================================
+IRONSTRIKE OPTIONS - DATABASE SCHEMA DEFINITIONS
+Extracted from: shared/schema.ts
+================================================================================
+
+================================================================================
+1) SIGNALS - Signal History Table
+================================================================================
+
+export const signalHistory = pgTable("signal_history", {
+  id: serial("id").primaryKey(),
+  symbol: varchar("symbol", { length: 10 }).notNull(),
+  action: varchar("action", { length: 20 }).notNull(),
+  optionType: varchar("option_type", { length: 10 }),
+  optionSide: varchar("option_side", { length: 10 }),
+  strikePrice: decimal("strike_price", { precision: 12, scale: 2 }).notNull(),
+  expirationDate: varchar("expiration_date", { length: 20 }).notNull(),
+  currentPrice: decimal("current_price", { precision: 12, scale: 2 }).notNull(),
+  premium: decimal("premium", { precision: 12, scale: 4 }).notNull(),
+  contracts: integer("contracts").notNull(),
+  contractMultiplier: integer("contract_multiplier").notNull().default(100),
+  totalCost: decimal("total_cost", { precision: 12, scale: 2 }).notNull(),
+  maxLoss: varchar("max_loss", { length: 50 }).notNull(),
+  maxGain: varchar("max_gain", { length: 50 }),
+  breakeven: decimal("breakeven", { precision: 12, scale: 2 }).notNull(),
+  confidence: decimal("confidence", { precision: 5, scale: 4 }).notNull(),
+  impliedVolatility: decimal("implied_volatility", { precision: 8, scale: 4 }),
+  delta: decimal("delta", { precision: 8, scale: 6 }),
+  gamma: decimal("gamma", { precision: 8, scale: 6 }),
+  theta: decimal("theta", { precision: 8, scale: 6 }),
+  vega: decimal("vega", { precision: 8, scale: 6 }),
+  stopLossPercent: decimal("stop_loss_percent", { precision: 5, scale: 2 }).notNull(),
+  takeProfitPercent: decimal("take_profit_percent", { precision: 5, scale: 2 }).notNull(),
+  reasoning: text("reasoning"),
+  accountSize: decimal("account_size", { precision: 12, scale: 2 }).notNull(),
+  riskPercentage: decimal("risk_percentage", { precision: 5, scale: 4 }).notNull(),
+  generatedAt: timestamp("generated_at").defaultNow().notNull(),
+});
+
+export const insertSignalHistorySchema = createInsertSchema(signalHistory).omit({
+  id: true,
+  generatedAt: true,
+});
+
+export type InsertSignalHistory = z.infer<typeof insertSignalHistorySchema>;
+export type SelectSignalHistory = typeof signalHistory.$inferSelect;
+
+--------------------------------------------------------------------------------
+Signal Request Schema (Zod validation)
+--------------------------------------------------------------------------------
+
+export const signalRequestSchema = z.object({
+  symbols: z.array(z.string().min(1).max(10)).min(1).max(10),
+  preferredExpiry: z.enum(["weekly", "monthly", "45_days"]).optional().default("monthly"),
+  preferredDelta: z.number().min(0.1).max(0.9).optional().default(0.3),
+  tier: tierSchema.optional().default("premium"),
+  accountSize: z.number().min(100).max(10000000).optional().default(5000),
+  riskProfile: riskProfileNameSchema.optional().default("Balanced"),
+});
+
+--------------------------------------------------------------------------------
+Trading Signal Schema (Zod validation - Generated signal structure)
+--------------------------------------------------------------------------------
+
+export const tradingSignalSchema = z.object({
+  symbol: z.string(),
+  action: optionActionSchema,
+  optionType: optionTypeSchema,
+  optionSide: optionSideSchema,
+  strikePrice: z.number().min(0).nullable().optional(),
+  expirationDate: z.string().optional(),
+  currentPrice: z.number().min(0),
+  premium: z.number().min(0).nullable().optional(),
+  contracts: z.number().min(0).nullable().optional(),
+  contractMultiplier: z.number().default(100),
+  totalCost: z.number().min(0).nullable().optional(),
+  maxLoss: z.union([z.number().min(0), z.string()]).nullable().optional(),
+  maxGain: z.union([z.number(), z.string()]).nullable().optional(),
+  breakeven: z.number().min(0).nullable().optional(),
+  confidence: z.number().min(0).max(1),
+  impliedVolatility: z.number().min(0).optional(),
+  greeks: greeksSchema.optional(),
+  stopLossPercent: z.number().min(0).max(100).optional(),
+  takeProfitPercent: z.number().min(0).optional(),
+  reasoning: z.string().optional(),
+  
+  // Risk Model B fields
+  selectedContract: selectedContractSchema.nullable().optional(),
+  positionPreview: positionPreviewSchema.nullable().optional(),
+  riskProfileUsed: riskProfileNameSchema.nullable().optional(),
+  effectiveRiskPercent: z.number().min(0).max(1).nullable().optional(),
+  isUnaffordable: z.boolean().optional(),
+  unaffordableReason: z.string().optional(),
+  riskViolation: z.boolean().optional(),
+});
+
+================================================================================
+2) TRADES / PORTFOLIO - Trade Executions Table
+================================================================================
+
+export const tradeExecutions = pgTable("trade_executions", {
+  id: serial("id").primaryKey(),
+  signalId: integer("signal_id"), // Nullable for manual trades
+  userId: varchar("user_id", { length: 100 }), // Clerk user ID
+  symbol: varchar("symbol", { length: 10 }).notNull(),
+  action: varchar("action", { length: 20 }).notNull(),
+  optionType: varchar("option_type", { length: 10 }),
+  optionSide: varchar("option_side", { length: 10 }),
+  strikePrice: decimal("strike_price", { precision: 12, scale: 2 }),
+  expirationDate: varchar("expiration_date", { length: 20 }),
+  entryPremium: decimal("entry_premium", { precision: 12, scale: 4 }).notNull(),
+  exitPremium: decimal("exit_premium", { precision: 12, scale: 4 }),
+  contracts: integer("contracts").notNull(),
+  contractMultiplier: integer("contract_multiplier").notNull().default(100),
+  totalCost: decimal("total_cost", { precision: 12, scale: 2 }).notNull(),
+  targetPremiumPercent: decimal("target_premium_percent", { precision: 8, scale: 2 }),
+  stopLossPremiumPercent: decimal("stop_loss_premium_percent", { precision: 8, scale: 2 }),
+  status: varchar("status", { length: 20 }).notNull().default("open"),
+  profitLoss: decimal("profit_loss", { precision: 12, scale: 2 }),
+  profitLossPercent: decimal("profit_loss_percent", { precision: 8, scale: 4 }),
+  executedAt: timestamp("executed_at").defaultNow().notNull(),
+  closedAt: timestamp("closed_at"),
+  notes: text("notes"),
+  
+  // Journal fields for TradeZella-style experience
+  source: varchar("source", { length: 20 }).notNull().default("ironstrike"), // ironstrike, manual, external
+  assetType: varchar("asset_type", { length: 20 }).notNull().default("option"), // option, equity
+  strategyTag: varchar("strategy_tag", { length: 100 }), // e.g., "0DTE scalp", "Earnings play"
+  tagList: text("tag_list"), // JSON array of tags like ["A+ setup", "Opening drive"]
+  sessionTag: varchar("session_tag", { length: 20 }), // premarket, us_open, midday, power_hour, afterhours
+  emotionalState: varchar("emotional_state", { length: 20 }), // calm, confident, anxious, fearful, greedy, frustrated
+  whatWentWell: text("what_went_well"),
+  whatWentWrong: text("what_went_wrong"),
+  lessonLearned: text("lesson_learned"),
+  screenshotUrl: text("screenshot_url"),
+  
+  // Risk management fields (R-multiple tracking)
+  plannedRiskPerTrade: decimal("planned_risk_per_trade", { precision: 12, scale: 2 }), // Dollar amount risked
+  plannedStopPrice: decimal("planned_stop_price", { precision: 12, scale: 4 }),
+  plannedTakeProfitPrice: decimal("planned_take_profit_price", { precision: 12, scale: 4 }),
+  realizedRMultiple: decimal("realized_r_multiple", { precision: 8, scale: 4 }), // P&L / planned risk
+});
+
+export const insertTradeExecutionSchema = createInsertSchema(tradeExecutions).omit({
+  id: true,
+  executedAt: true,
+});
+
+export type InsertTradeExecution = z.infer<typeof insertTradeExecutionSchema>;
+export type SelectTradeExecution = typeof tradeExecutions.$inferSelect;
+
+--------------------------------------------------------------------------------
+Trade Journal Entries Table
+--------------------------------------------------------------------------------
+
+export const tradeJournalEntries = pgTable("trade_journal_entries", {
+  id: serial("id").primaryKey(),
+  tradeId: integer("trade_id").notNull(), // Reference to trade_executions
+  entryType: varchar("entry_type", { length: 20 }).notNull(), // "pre-trade", "during", "post-trade", "lesson"
+  content: text("content").notNull(),
+  tags: text("tags"), // JSON array of tags
+  mood: varchar("mood", { length: 20 }), // "confident", "nervous", "neutral", "regretful"
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertTradeJournalEntrySchema = createInsertSchema(tradeJournalEntries).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type InsertTradeJournalEntry = z.infer<typeof insertTradeJournalEntrySchema>;
+export type SelectTradeJournalEntry = typeof tradeJournalEntries.$inferSelect;
+
+--------------------------------------------------------------------------------
+Trading Strategies Table
+--------------------------------------------------------------------------------
+
+export const tradingStrategies = pgTable("trading_strategies", {
+  id: serial("id").primaryKey(),
+  name: varchar("name", { length: 100 }).notNull(),
+  description: text("description"),
+  action: varchar("action", { length: 20 }).notNull(),
+  conditionGroups: text("condition_groups").notNull(), // JSON string of condition groups
+  enabled: integer("enabled").notNull().default(1), // 1 = true, 0 = false
+  priority: integer("priority").notNull().default(50),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertTradingStrategySchema = createInsertSchema(tradingStrategies).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type InsertTradingStrategy = z.infer<typeof insertTradingStrategySchema>;
+export type SelectTradingStrategy = typeof tradingStrategies.$inferSelect;
+
+--------------------------------------------------------------------------------
+Portfolio Summary Schema (Zod validation)
+--------------------------------------------------------------------------------
+
+export const portfolioSummarySchema = z.object({
+  totalPositions: z.number(),
+  openPositions: z.number(),
+  closedPositions: z.number(),
+  totalInvested: z.number(),
+  totalValue: z.number(),
+  realizedPnL: z.number(),
+  unrealizedPnL: z.number(),
+  totalPnL: z.number(),
+  totalPnLPercent: z.number(),
+  winRate: z.number(),
+  avgHoldingPeriod: z.number(), // in days
+  topPerformers: z.array(z.object({
+    symbol: z.string(),
+    pnlPercent: z.number(),
+    status: z.string()
+  })),
+  worstPerformers: z.array(z.object({
+    symbol: z.string(),
+    pnlPercent: z.number(),
+    status: z.string()
+  }))
+});
+
+export type PortfolioSummary = z.infer<typeof portfolioSummarySchema>;
+
+--------------------------------------------------------------------------------
+Performance Metrics Schema (Zod validation)
+--------------------------------------------------------------------------------
+
+export const performanceMetricsSchema = z.object({
+  totalTrades: z.number(),
+  openTrades: z.number(),
+  closedTrades: z.number(),
+  winningTrades: z.number(),
+  losingTrades: z.number(),
+  winRate: z.number(),
+  averageProfit: z.number(),
+  averageLoss: z.number(),
+  totalProfitLoss: z.number(),
+  bestTrade: z.object({
+    symbol: z.string(),
+    profitLossPercent: z.number(),
+  }).nullable(),
+  worstTrade: z.object({
+    symbol: z.string(),
+    profitLossPercent: z.number(),
+  }).nullable(),
+  profitFactor: z.number(),
+  expectancy: z.number(),
+});
+
+export type PerformanceMetrics = z.infer<typeof performanceMetricsSchema>;
+
+================================================================================
+3) OUTCOMES / ADAPTIVE METRICS - Signal Outcomes Table
+================================================================================
+
+export const signalOutcomes = pgTable("signal_outcomes", {
+  id: serial("id").primaryKey(),
+  signalId: integer("signal_id").notNull(),
+  symbol: varchar("symbol", { length: 10 }).notNull(),
+  action: varchar("action", { length: 20 }).notNull(),
+  optionType: varchar("option_type", { length: 10 }).notNull(),
+  strikePrice: decimal("strike_price", { precision: 12, scale: 2 }).notNull(),
+  expirationDate: varchar("expiration_date", { length: 20 }).notNull(),
+  entryPrice: decimal("entry_price", { precision: 12, scale: 2 }).notNull(),
+  entryPremium: decimal("entry_premium", { precision: 12, scale: 4 }).notNull(),
+  exitPrice: decimal("exit_price", { precision: 12, scale: 2 }),
+  exitPremium: decimal("exit_premium", { precision: 12, scale: 4 }),
+  predictedDirection: varchar("predicted_direction", { length: 10 }).notNull(), // "UP" or "DOWN"
+  actualDirection: varchar("actual_direction", { length: 10 }), // "UP", "DOWN", or null if pending
+  originalConfidence: decimal("original_confidence", { precision: 5, scale: 4 }).notNull(),
+  marketCondition: varchar("market_condition", { length: 20 }), // "BULLISH", "BEARISH", "NEUTRAL", "VOLATILE"
+  wasSuccessful: integer("was_successful"), // 1 = hit target, 0 = hit stop, null = pending
+  profitLossPercent: decimal("profit_loss_percent", { precision: 8, scale: 4 }),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  evaluatedAt: timestamp("evaluated_at"),
+});
+
+export const insertSignalOutcomeSchema = createInsertSchema(signalOutcomes).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type InsertSignalOutcome = z.infer<typeof insertSignalOutcomeSchema>;
+export type SelectSignalOutcome = typeof signalOutcomes.$inferSelect;
+
+--------------------------------------------------------------------------------
+Adaptive Learning Metrics Schema (Zod validation - per symbol)
+--------------------------------------------------------------------------------
+
+export const adaptiveLearningSchema = z.object({
+  symbol: z.string(),
+  totalSignals: z.number(),
+  successfulSignals: z.number(),
+  failedSignals: z.number(),
+  pendingSignals: z.number(),
+  successRate: z.number().min(0).max(1),
+  avgConfidenceAdjustment: z.number(), // How much to adjust base confidence
+  recentTrend: z.enum(["IMPROVING", "DECLINING", "STABLE"]),
+  lastUpdated: z.string().or(z.date()),
+  marketConditionAccuracy: z.record(z.number()), // Accuracy by market condition
+});
+
+export type AdaptiveLearning = z.infer<typeof adaptiveLearningSchema>;
+
+================================================================================
+4) SCREENSHOT IMPORT / MANUAL TRADE INPUT
+================================================================================
+
+--------------------------------------------------------------------------------
+Manual Trade Input Schema (for trades outside IronStrike + screenshot import)
+--------------------------------------------------------------------------------
+
+export const manualTradeInputSchema = z.object({
+  symbol: z.string().min(1).max(10),
+  assetType: assetTypeSchema.default("option"),
+  action: z.string().min(1), // LONG_CALL, LONG_PUT, SHORT_CALL, SHORT_PUT, LONG_STOCK, SHORT_STOCK
+  optionType: optionTypeSchema.optional(),
+  optionSide: optionSideSchema.optional(),
+  strikePrice: z.number().min(0).optional(),
+  expirationDate: z.string().optional(),
+  entryPremium: z.number().min(0),
+  contracts: z.number().min(1),
+  totalCost: z.number().min(0).optional(),
+  
+  // Journal fields
+  strategyTag: z.string().max(100).optional(),
+  tagList: z.array(z.string()).optional(),
+  sessionTag: sessionTagSchema.optional(),
+  emotionalState: emotionalStateSchema.optional(),
+  whatWentWell: z.string().optional(),
+  whatWentWrong: z.string().optional(),
+  lessonLearned: z.string().optional(),
+  screenshotUrl: z.string().url().optional().or(z.literal("")),
+  notes: z.string().optional(),
+  
+  // Risk management
+  plannedRiskPerTrade: z.number().min(0).optional(),
+  plannedStopPrice: z.number().min(0).optional(),
+  plannedTakeProfitPrice: z.number().min(0).optional(),
+});
+
+export type ManualTradeInput = z.infer<typeof manualTradeInputSchema>;
+
+--------------------------------------------------------------------------------
+Trade Journal Update Schema (for editing journal fields on any trade)
+--------------------------------------------------------------------------------
+
+export const tradeJournalUpdateSchema = z.object({
+  strategyTag: z.string().max(100).optional(),
+  tagList: z.array(z.string()).optional(),
+  sessionTag: sessionTagSchema.optional(),
+  emotionalState: emotionalStateSchema.optional(),
+  whatWentWell: z.string().optional(),
+  whatWentWrong: z.string().optional(),
+  lessonLearned: z.string().optional(),
+  screenshotUrl: z.string().url().optional().or(z.literal("")),
+  notes: z.string().optional(),
+  plannedRiskPerTrade: z.union([z.string(), z.number()]).optional(),
+  plannedStopPrice: z.union([z.string(), z.number()]).optional(),
+  plannedTakeProfitPrice: z.union([z.string(), z.number()]).optional(),
+});
+
+export type TradeJournalUpdate = z.infer<typeof tradeJournalUpdateSchema>;
+
+--------------------------------------------------------------------------------
+Chart Analysis Request Schema (for image uploads)
+--------------------------------------------------------------------------------
+
+export const chartAnalysisRequestSchema = z.object({
+  chartImage: z.string().min(1, "Chart image is required").refine(
+    (val) => val.startsWith("data:image/") && val.length < 10 * 1024 * 1024,
+    "Invalid image format or size (max 10MB)"
+  ),
+  context: z.string().max(1000).optional(),
+});
+
+export type ChartAnalysisRequest = z.infer<typeof chartAnalysisRequestSchema>;
+
+================================================================================
+5) SUPPORTING ENUMS & TYPES
+================================================================================
+
+// Option enums
+export const optionTypeSchema = z.enum(["CALL", "PUT"]);
+export const optionSideSchema = z.enum(["LONG", "SHORT"]);
+export const optionActionSchema = z.enum(["BUY_CALL", "BUY_PUT", "SELL_CALL", "SELL_PUT", "HOLD"]);
+
+// Tier enum
+export const tierSchema = z.enum(["free", "pro", "premium"]);
+
+// Trade source enum
+export const tradeSourceSchema = z.enum(["ironstrike", "manual", "external"]);
+
+// Asset type enum
+export const assetTypeSchema = z.enum(["option", "equity"]);
+
+// Session tag enum
+export const sessionTagSchema = z.enum(["premarket", "us_open", "midday", "power_hour", "afterhours", "overnight"]);
+
+// Emotional state enum
+export const emotionalStateSchema = z.enum(["calm", "confident", "anxious", "fearful", "greedy", "frustrated", "excited", "neutral"]);
+
+// Risk profile enum
+export const riskProfileNameSchema = z.enum([
+  "UltraConservative",
+  "Conservative",
+  "Balanced",
+  "Growth",
+  "Aggressive",
+]);
+
+// Greeks Schema
+export const greeksSchema = z.object({
+  delta: z.number().min(-1).max(1),
+  gamma: z.number(),
+  theta: z.number(),
+  vega: z.number(),
+  rho: z.number().optional(),
+});
+
+================================================================================
+6) USERS & SUPPORTING TABLES
+================================================================================
+
+--------------------------------------------------------------------------------
+Users Table
+--------------------------------------------------------------------------------
+
+export const users = pgTable("users", {
+  id: varchar("id", { length: 255 }).primaryKey(),
+  email: varchar("email", { length: 255 }),
+  firstName: varchar("first_name", { length: 100 }),
+  lastName: varchar("last_name", { length: 100 }),
+  profileImageUrl: text("profile_image_url"),
+  role: varchar("role", { length: 20 }).notNull().default("free"),
+  stripeCustomerId: varchar("stripe_customer_id", { length: 255 }),
+  timezone: varchar("timezone", { length: 50 }).default("America/New_York"),
+  telegramChatId: varchar("telegram_chat_id", { length: 100 }),
+  discordWebhookUrl: text("discord_webhook_url"),
+  defaultNotifyEmail: boolean("default_notify_email").notNull().default(true),
+  defaultNotifyTelegram: boolean("default_notify_telegram").notNull().default(false),
+  defaultNotifyDiscord: boolean("default_notify_discord").notNull().default(false),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+--------------------------------------------------------------------------------
+Sessions Table (for Replit Auth)
+--------------------------------------------------------------------------------
+
+export const sessions = pgTable(
+  "sessions",
+  {
+    sid: varchar("sid").primaryKey(),
+    sess: jsonb("sess").notNull(),
+    expire: timestamp("expire").notNull(),
+  },
+  (table) => [index("IDX_session_expire").on(table.expire)],
+);
+
+--------------------------------------------------------------------------------
+Watchlist Table
+--------------------------------------------------------------------------------
+
+export const watchlist = pgTable("watchlist", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id", { length: 255 }),
+  symbol: varchar("symbol", { length: 10 }).notNull(),
+  addedAt: timestamp("added_at").defaultNow().notNull(),
+  notes: text("notes"),
+});
+
+--------------------------------------------------------------------------------
+Price Alerts Table
+--------------------------------------------------------------------------------
+
+export const priceAlerts = pgTable("price_alerts", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id", { length: 255 }),
+  symbol: varchar("symbol", { length: 10 }).notNull(),
+  targetPrice: decimal("target_price", { precision: 12, scale: 2 }).notNull(),
+  condition: varchar("condition", { length: 10 }).notNull(), // "ABOVE" or "BELOW"
+  status: varchar("status", { length: 20 }).notNull().default("ACTIVE"), // "ACTIVE", "TRIGGERED", "EXPIRED"
+  notifyEmail: boolean("notify_email").notNull().default(false),
+  notifyTelegram: boolean("notify_telegram").notNull().default(false),
+  notifyDiscord: boolean("notify_discord").notNull().default(false),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  triggeredAt: timestamp("triggered_at"),
+});
+
+================================================================================
+END OF SCHEMA DEFINITIONS
+================================================================================

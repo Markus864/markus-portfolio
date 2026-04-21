@@ -1,0 +1,61 @@
+# --- OS / Editor cruft ---
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# --- Python ---
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+*.egg-info/
+.venv/
+venv/
+env/
+
+# --- Node / Web ---
+node_modules/
+dist/
+build/
+.next/
+out/
+coverage/
+*.tsbuildinfo
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# --- Environment / secrets ---
+.env
+.env.*
+!.env.example
+key.json
+*.pem
+*.key
+*.p12
+*.crt
+secrets/
+
+# --- Terraform / cloud / infra state ---
+.terraform/
+*.tfstate
+*.tfstate.*
+.terraform.lock.hcl
+
+# --- Generated output / local runtime ---
+network_data.xlsx
+.snake_highscore.txt
+crypto-wallet/bot/__pycache__/
+crypto-wallet/trading.log
+crypto-wallet/state.json
+
+# --- Logs / temp ---
+*.log
+tmp/
+temp/
+.cache/

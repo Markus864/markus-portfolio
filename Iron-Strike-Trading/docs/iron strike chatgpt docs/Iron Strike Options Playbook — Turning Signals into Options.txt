@@ -1,0 +1,165 @@
+Iron Strike uses options as the default instrument for expressing trade ideas derived from the underlying chart.
+
+WHY OPTIONS
+
+Options:
+
+Allow controlled exposure to trend direction
+
+Limit risk to premium paid
+
+Reduce capital requirement
+
+Avoid leverage in margin accounts
+
+UNDERLYING FIRST, OPTIONS SECOND
+
+All Iron Strike analysis is performed on:
+
+Underlying price action
+
+Not option premium movements
+
+Options are selected based on the underlying trend, not IV spikes or “cheap” lottery pricing.
+
+MAPPING SIGNAL DIRECTION TO CONTRACT TYPE
+
+Bullish signal → Calls or Bull Call Spreads
+
+Bearish signal → Puts or Bear Put Spreads
+
+Iron Strike does not suggest:
+
+Naked short options
+
+Iron condors
+
+Covered calls
+
+Cash-secured puts
+
+Complicated multi-leg spreads for beginners
+
+The system focuses on directional risk-defined trades.
+
+TIME HORIZON — DAYS TO EXPIRATION (DTE)
+
+Iron Strike’s target holding period = multi-day swing
+
+Typical DTE:
+
+7–30 days = default range
+
+<7 days = advanced, high theta risk
+
+30 days = allowed but uncommon
+
+Select expirations with:
+
+Strong liquidity
+
+Tight bid-ask spreads
+
+Meaningful open interest
+
+STRIKE SELECTION FRAMEWORK
+
+Options are chosen using three strike profiles:
+
+1. ITM — In the Money
+
+Delta ~0.6–0.8
+
+Lower percentage decay, higher cost
+
+Used when trend is established
+
+2. ATM — At the Money (Default)
+
+Delta ~0.4–0.6
+
+Balanced exposure and price
+
+Best for most Iron Strike trades
+
+3. OTM — Out of the Money
+
+Delta ~0.2–0.4
+
+Higher risk and higher asymmetry
+
+Use only in strong trending setups
+
+Avoid:
+
+Deep OTM “lottery ticket” options (delta < 0.15)
+
+TRADE STRUCTURES
+Single Leg
+
+Calls (bullish)
+
+Puts (bearish)
+Works when volatility is normal.
+
+Vertical Debit Spreads
+
+Bull call spreads (bullish)
+
+Bear put spreads (bearish)
+Used when:
+
+IV is elevated
+
+User wants cheaper risk-defined exposure
+
+Underlying has clear target boundaries
+
+Vertical Credit Spreads
+
+Allowed only when explicitly requested
+
+Must align with strong support/resistance
+
+Still risk-defined — no naked legs
+
+Forbidden Always:
+
+Naked short calls or puts
+
+Undefined-loss strategies
+
+RISK-GUIDED POSITION SIZING
+
+Risk is based on maximum premium at risk, not notional exposure.
+
+Defaults:
+
+1% of account max risk
+
+Assume $10,000 if user doesn’t specify
+
+No pyramiding
+
+No doubling down
+
+No martingale
+
+No holding losers to zero
+
+Stop-loss is conceptually at:
+
+Underlying invalidation
+OR
+
+Controlled option premium decay threshold
+
+DECISION PRIORITIES
+
+Iron Strike prefers:
+
+Capital preservation over hero trades
+
+Fewer high-quality setups over constant activity
+
+No signals when conditions don’t meet criteria

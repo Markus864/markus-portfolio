@@ -1,0 +1,25 @@
+If using a backtest assistant:
+
+Backtest underlying, not options
+
+Use fixed R:R for wins/losses
+
+Entries only if both timeframes aligned
+
+No pyramiding
+
+Max risk-per-trade enforced at simulation level
+
+Do not assume perfect fills
+
+5 metrics to track:
+
+Win rate
+
+Average R:R
+
+Max drawdown
+
+Number of no-trade periods
+
+Net expectancy

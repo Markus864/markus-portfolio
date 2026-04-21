@@ -1,0 +1,13 @@
+{
+  "db": 1,
+  "bits": [
+    { "byte": 0, "bit": 0, "code": "E_STOP",          "description": "Emergency stop activated" },
+    { "byte": 0, "bit": 1, "code": "OVER_TEMP",        "description": "Motor or drive over-temperature" },
+    { "byte": 0, "bit": 2, "code": "PRESSURE_FAULT",   "description": "Pneumatic pressure out of range" },
+    { "byte": 0, "bit": 3, "code": "CONVEYOR_JAM",     "description": "Conveyor belt jam detected" },
+    { "byte": 0, "bit": 4, "code": "DRIVE_FAULT",      "description": "VFD drive fault" },
+    { "byte": 0, "bit": 5, "code": "SENSOR_LOSS",      "description": "Sensor signal lost or broken wire" },
+    { "byte": 0, "bit": 6, "code": "COMMS_TIMEOUT",    "description": "PROFINET communication timeout" },
+    { "byte": 0, "bit": 7, "code": "POWER_CYCLE",      "description": "Unexpected power cycle detected" }
+  ]
+}

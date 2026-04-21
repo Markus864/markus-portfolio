@@ -1,0 +1,29 @@
+{
+  "ticker": "AAPL",
+  "direction": "long",
+  "signal_strength": 78,
+  "entry_zone": "186.10–187.00",
+  "stop_loss": "182.90",
+  "take_profit_targets": ["192.00", "196.50"],
+  "indicator_snapshot": {
+    "rsi": "RSI rising through 55",
+    "ema50": "Price above EMA50",
+    "ema200": "200 EMA flattening upward",
+    "macd": "Histogram crossed positive",
+    "volume": "Above 20-day average"
+  },
+  "timeframes": {
+    "daily_trend": "Bullish reclaim of 200 EMA",
+    "4h_trigger": "Pullback into support and bounce"
+  },
+  "options_suggestion": {
+    "enabled": true,
+    "position_type": "calls",
+    "structure": "single_leg",
+    "dte_days": 14,
+    "strike_style": "ATM",
+    "approx_delta": 0.5,
+    "notes": "Look for near-ATM calls with delta 0.45–0.60"
+  },
+  "reason": "Both daily and 4H structures aligned bullish with volume confirmation."
+}

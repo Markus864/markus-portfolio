@@ -1,0 +1,1251 @@
+{
+  "name": "Saeli-Telegram Nano Banana 2 -> Kling -> Cloudinary -> Telegram v2",
+  "nodes": [
+    {
+      "parameters": {
+        "updates": [
+          "message"
+        ],
+        "additionalFields": {}
+      },
+      "id": "d8c7bbdb-ed51-4542-b424-2e23020747f1",
+      "name": "Telegram Trigger",
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        -2096,
+        128
+      ],
+      "webhookId": "07816b35-3b02-4fdb-a4d6-16a7cc89cdae",
+      "credentials": {
+        "telegramApi": {
+          "id": "Y7qIf1EhdxgRlBxj",
+          "name": "Anubis_cinematic-bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const msg = $json.message || {};\nconst chatId = msg.chat?.id;\nconst text = (msg.text || msg.caption || '').trim();\nconst from = msg.from || {};\n\nif (!chatId) throw new Error('No Telegram chat ID found.');\nif (!text) throw new Error('Send a text prompt to the bot.');\n\nreturn [{\n  json: {\n    telegramChatId: String(chatId),\n    userText: text,\n    telegramUser: {\n      id: from.id || '',\n      username: from.username || '',\n      first_name: from.first_name || ''\n    }\n  }\n}];"
+      },
+      "id": "e5862e14-1099-44b8-a84e-038f677b36fd",
+      "name": "Extract Telegram Input",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1872,
+        128
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "name": "falApiKey",
+              "type": "string",
+              "value": "YOUR_FAL_API_KEY",
+              "id": "b7068fc7-98df-4d7b-a86b-6381024986a6"
+            },
+            {
+              "name": "cloudinaryCloudName",
+              "type": "string",
+              "value": "YOUR_CLOUDINARY_CLOUD_NAME",
+              "id": "8916c2dc-299c-4dba-8af9-57eca06dd057"
+            },
+            {
+              "name": "cloudinaryUnsignedPreset",
+              "type": "string",
+              "value": "fal_downloads",
+              "id": "2e8967b5-bbd7-4e6b-ad71-bfbe011dd1c5"
+            },
+            {
+              "name": "cloudinaryFolder",
+              "type": "string",
+              "value": "Saeli_Reference_Images",
+              "id": "b124bbf3-69a3-4244-a553-4291875a1876"
+            },
+            {
+              "name": "openAiModel",
+              "type": "string",
+              "value": "gpt-4o",
+              "id": "15f962ce-7ba3-475b-8c40-651907def4fc"
+            },
+            {
+              "name": "referenceImageUrl01",
+              "type": "string",
+              "value": "https://res.cloudinary.com/YOUR_CLOUDINARY_CLOUD_NAME/image/upload/v1774184900/Saeli%20Reference%20Images/generated-0_144.png",
+              "id": "fdac8d13-3c68-45de-8a24-e8bbb4c0dcff"
+            },
+            {
+              "name": "referenceImageUrl02",
+              "type": "string",
+              "value": "https://res.cloudinary.com/YOUR_CLOUDINARY_CLOUD_NAME/image/upload/v1774184899/Saeli%20Reference%20Images/generated-0_118.png",
+              "id": "f39cd9e7-ee04-4374-9fa2-470fffe9177f"
+            },
+            {
+              "name": "referenceImageUrl03",
+              "type": "string",
+              "value": "https://res.cloudinary.com/YOUR_CLOUDINARY_CLOUD_NAME/image/upload/v1774184899/Saeli%20Reference%20Images/generated-0_132.png",
+              "id": "f9e36f17-2416-4979-9195-e58b3681fe3b"
+            },
+            {
+              "name": "referenceImageUrl04",
+              "type": "string",
+              "value": "https://res.cloudinary.com/YOUR_CLOUDINARY_CLOUD_NAME/image/upload/v1774184898/Saeli%20Reference%20Images/generated-0_138.png",
+              "id": "fb5b85f5-cb04-45a3-a829-b64c8ce436fd"
+            },
+            {
+              "name": "referenceImageUrl05",
+              "type": "string",
+              "value": "https://res.cloudinary.com/YOUR_CLOUDINARY_CLOUD_NAME/image/upload/v1774184898/Saeli%20Reference%20Images/generated-0_104.png",
+              "id": "639e5a3c-94df-4967-8a43-c54cb083ad46"
+            },
+            {
+              "name": "referenceImageUrl06",
+              "type": "string",
+              "value": "https://res.cloudinary.com/YOUR_CLOUDINARY_CLOUD_NAME/image/upload/v1774184898/Saeli%20Reference%20Images/generated-0_131.png",
+              "id": "4b13f25c-8762-44d2-99e1-e103e4f8c50d"
+            },
+            {
+              "name": "referenceImageUrl07",
+              "type": "string",
+              "value": "https://res.cloudinary.com/YOUR_CLOUDINARY_CLOUD_NAME/image/upload/v1774184897/Saeli%20Reference%20Images/generated-0_69.png",
+              "id": "a4a05bbe-bcca-4510-9f19-23d86ef49db9"
+            },
+            {
+              "name": "referenceImageUrl08",
+              "type": "string",
+              "value": "https://res.cloudinary.com/YOUR_CLOUDINARY_CLOUD_NAME/image/upload/v1774184897/Saeli%20Reference%20Images/generated-0_82.png",
+              "id": "601ab970-d85e-44d6-a2a3-183c6ca54e7a"
+            },
+            {
+              "name": "referenceImageUrl09",
+              "type": "string",
+              "value": "https://res.cloudinary.com/YOUR_CLOUDINARY_CLOUD_NAME/image/upload/v1774184897/Saeli%20Reference%20Images/generated-0_42.png",
+              "id": "c11999a2-6425-4f69-ab94-093c26d9fde7"
+            },
+            {
+              "name": "referenceImageUrl10",
+              "type": "string",
+              "value": "https://res.cloudinary.com/YOUR_CLOUDINARY_CLOUD_NAME/image/upload/v1774184897/Saeli%20Reference%20Images/generated-0_25.png",
+              "id": "d126c615-0409-4fa9-9bce-a96f1dda8fd0"
+            },
+            {
+              "name": "referenceImageUrl11",
+              "type": "string",
+              "value": "https://res.cloudinary.com/YOUR_CLOUDINARY_CLOUD_NAME/image/upload/v1774184897/Saeli%20Reference%20Images/generated-0_70.png",
+              "id": "854f7442-522f-4d45-a325-aa8260186a9f"
+            },
+            {
+              "name": "referenceImageUrl12",
+              "type": "string",
+              "value": "https://res.cloudinary.com/YOUR_CLOUDINARY_CLOUD_NAME/image/upload/v1774184896/Saeli%20Reference%20Images/generated-0_36.png",
+              "id": "c374e336-9591-4d6f-8d9f-8d6432e1b39a"
+            },
+            {
+              "name": "referenceImageUrl13",
+              "type": "string",
+              "value": "https://res.cloudinary.com/YOUR_CLOUDINARY_CLOUD_NAME/image/upload/v1774184896/Saeli%20Reference%20Images/generated-0_10.png",
+              "id": "cc1c7a08-6155-42a3-914c-c904fe45db79"
+            },
+            {
+              "name": "referenceImageUrl14",
+              "type": "string",
+              "value": "https://res.cloudinary.com/YOUR_CLOUDINARY_CLOUD_NAME/image/upload/v1774184896/Saeli%20Reference%20Images/generated-0_9.png",
+              "id": "d20dca67-8837-4ecf-b594-569c8005265f"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "id": "a38ad392-f5f4-49da-9510-ec71258b51e2",
+      "name": "Configuration",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -1648,
+        128
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const refs = [\n  $json.referenceImageUrl01,\n  $json.referenceImageUrl02,\n  $json.referenceImageUrl03,\n  $json.referenceImageUrl04,\n  $json.referenceImageUrl05,\n  $json.referenceImageUrl06,\n  $json.referenceImageUrl07,\n  $json.referenceImageUrl08,\n  $json.referenceImageUrl09,\n  $json.referenceImageUrl10,\n  $json.referenceImageUrl11,\n  $json.referenceImageUrl12,\n  $json.referenceImageUrl13,\n  $json.referenceImageUrl14\n]\n.filter(v => typeof v === 'string')\n.map(v => v.trim())\n.filter(Boolean);\n\nif (!refs.length) {\n  throw new Error('Add at least one Cloudinary reference image URL in Configuration.');\n}\n\nreturn [{ json: { ...$json, referenceImageUrls: refs } }];"
+      },
+      "id": "b35b9f22-5635-4908-92cf-69f4a317c08e",
+      "name": "Build Reference Image Array",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1424,
+        128
+      ]
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "={{ $json.openAiModel }}",
+          "mode": "id"
+        },
+        "responses": {
+          "values": [
+            {
+              "content": "=You convert {{ $json.userText }} raw idea into three production-ready assets for an image/video workflow.\n\nReturn ONLY valid minified JSON with this exact schema:\n{\n  \"positive_prompt\": \"string\",\n  \"negative_prompt\": \"string\",\n  \"video_prompt\": \"string\"\n}\n\nRules:\n- positive_prompt: detailed, ultra-photoreal, cinematic, copy-paste ready image prompt for Nano Banana 2.\n- negative_prompt: compact safety/quality exclusions such as blur, extra fingers, bad anatomy, text, watermark, logo, low quality, artifacts.\n- video_prompt: motion-focused image-to-video prompt for Kling 2.6 Pro, describing movement, camera motion, atmosphere, pacing, and preserving subject consistency.\n- Keep prompts generator-agnostic and high quality.\n- Do not include markdown.\n- Do not include explanations.\n\nExample: PHOTO_PROMPT:\nultrarealistic intimate editorial portrait of Saeli (consistent identity: warm olive skin with natural texture, deep brown eyes, defined brows, dark brown naturally curly hair with soft volume and slight frizz), reclining on a modern cream-toned couch in a softly lit luxury living space at night.\n\nShot on a Sony A7R V with an 85mm f/1.4 lens for shallow depth of field and elegant compression. Camera positioned low and slightly behind her lower body, angled upward to naturally emphasize her curves while maintaining tasteful proportions.\n\nSaeli is laying on her side with her body angled away from the camera, glutes subtly closest to the lens, creating depth and perspective. She turns her upper body slightly, looking back over her shoulder toward the camera with a warm, playful smile—confident, relaxed, and intimate.\n\nShe wears refined black lingerie—a soft lace or satin set with a minimal thong silhouette. The fabric shows realistic stretch, delicate texture, and subtle highlights where light catches the material. No exaggeration—natural, editorial styling.\n\nHer hair falls loosely around her shoulders and onto the couch, slightly tousled, with individual curls catching soft highlights. Skin is rendered naturally—visible pores, slight glow, no plastic smoothing.\n\nLighting: low, warm ambient lighting from a nearby lamp combined with soft practicals (table lamp or floor light), creating a golden glow across her skin. Subtle shadow falloff enhances body contours without harsh contrast. Background remains softly dim with warm highlights.\n\nEnvironment: luxury living room—plush couch with textured fabric, soft throw blanket, minimal decor, warm neutral tones. Background blurred with bokeh from small light sources.\n\nMicro-details: slight fabric compression where her body meets the couch, natural skin creasing at waist and hip, subtle shadow gradients along her back and legs, soft reflections on lingerie fabric, faint texture in couch upholstery.\n\nColor grade: warm cinematic tones—deep shadows, golden highlights, soft creams and blacks, subtle film grain for editorial realism.\n\nNEGATIVE_PROMPT:\nexplicit nudity, oversexualized anatomy, exaggerated proportions, plastic skin, over-smoothed face, distorted limbs, extra limbs, cartoon proportions, anime style, HDR filter, beauty filter, harsh lighting, unrealistic pose, glossy artificial textures, glitch artifacts\n\nVIDEO_PROMPT:\ncinematic slow push-in from a low angle behind her, camera gliding gently toward Saeli while maintaining shallow depth of field.\n\nShe shifts slightly on the couch, adjusting her position as the fabric beneath her subtly compresses. Her shoulder rolls back slightly as she turns her head toward the camera.\n\nHer expression transitions into a soft, genuine smile, eyes locking briefly with the lens. One hand lightly rests along the couch or near her waist, fingers making small natural adjustments.\n\nAmbient motion includes soft flicker from warm lighting, slight movement in her hair as she shifts, and subtle fabric motion from her repositioning.\n\nFinal moment: camera settles closer as she holds eye contact over her shoulder, smile relaxed and confident, wrapped in warm low-light ambiance.\n\nUser request:\n{{$json.userText}} "
+            }
+          ]
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "id": "b638e234-5044-46ee-a9b4-cb129818a3a9",
+      "name": "Generate Structured Prompts",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 2.1,
+      "position": [
+        -1200,
+        128
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "qmb80pU9tjFzXx6M",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const raw =\n  $json.output?.[0]?.content?.[0]?.text ??\n  $json.content?.[0]?.text ??\n  $json.text ??\n  '';\n\nif (!raw) throw new Error('OpenAI prompt generator returned empty output.');\n\nlet parsed;\ntry {\n  parsed = JSON.parse(raw);\n} catch (e) {\n  const cleaned = raw.replace(/^```json\\s*/,'').replace(/```$/,'').trim();\n  parsed = JSON.parse(cleaned);\n}\n\nconst positive = (parsed.positive_prompt || '').trim();\nconst negative = (parsed.negative_prompt || '').trim();\nconst video = (parsed.video_prompt || '').trim();\n\nif (!positive || !negative || !video) {\n  throw new Error('Missing one or more prompts from parsed JSON.');\n}\n\nreturn [{\n  json: {\n    ...$('Build Reference Image Array').first().json,\n    positive_prompt: positive,\n    negative_prompt: negative,\n    video_prompt: video,\n    fal_edit_prompt: `${positive}\\n\\nAvoid: ${negative}`,\n    caption_seed: $('Build Reference Image Array').first().json.userText\n  }\n}];"
+      },
+      "id": "48ae5458-ee02-419c-aec4-2e4d5c6ad08e",
+      "name": "Parse Prompt JSON",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -976,
+        128
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://queue.fal.run/fal-ai/nano-banana-2/edit",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Key {{ $json.falApiKey }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { \"prompt\": $json.fal_edit_prompt, \"image_urls\": $json.referenceImageUrls, \"aspect_ratio\": \"9:16\", \"output_format\": \"jpeg\" } }}",
+        "options": {}
+      },
+      "id": "87c1be72-33dc-463c-80f3-8c39536f75bc",
+      "name": "Start Nano Banana Edit",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -752,
+        128
+      ]
+    },
+    {
+      "parameters": {
+        "amount": 10
+      },
+      "id": "4907b6c8-f721-4827-8ed2-04fdba3af30f",
+      "name": "Wait Image",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        -528,
+        128
+      ],
+      "webhookId": "27a62e12-7cac-4e12-a293-3ea89667bfec"
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.status_url }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Key {{ $('Parse Prompt JSON').first().json.falApiKey }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "4aefa985-d660-464c-adca-8adc0347fdd8",
+      "name": "Check Image Status",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -304,
+        48
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const j = Array.isArray($json) ? $json[0] : $json;\nconst status = String(j.status || '').toUpperCase();\nreturn [{ json: { ...j, statusUpper: status, isFailureStatus: ['FAILED','ERROR','CANCELLED','CANCELED'].includes(status) } }];"
+      },
+      "id": "31713dd4-32fb-456c-9506-b294bb410d62",
+      "name": "Normalize Image Status",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -80,
+        48
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.status }}",
+              "rightValue": "COMPLETED",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "66318b95-4c35-444b-9d83-78e6a22e8fe6",
+      "name": "Image Complete?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        368,
+        224
+      ]
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.response_url }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Key {{ $('Parse Prompt JSON').first().json.falApiKey }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "6897c4aa-565a-4f70-be61-88d01f69f540",
+      "name": "Fetch Image Result",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        592,
+        224
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const img = $json.images?.[0]?.url;\nif (!img) throw new Error('Nano Banana result did not contain an image URL.');\nconst base = $('Parse Prompt JSON').first().json;\nreturn [{\n  json: {\n    ...base,\n    falImageUrl: img,\n    imagePublicId: `nb2_${Date.now()}`\n  }\n}];"
+      },
+      "id": "a71d475a-c848-4e10-8fa2-f7859083e930",
+      "name": "Prepare Image Upload",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        816,
+        224
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://api.cloudinary.com/v1_1/{{ $json.cloudinaryCloudName }}/image/upload",
+        "sendBody": true,
+        "contentType": "multipart-form-data",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "file",
+              "value": "={{ $json.falImageUrl }}"
+            },
+            {
+              "name": "upload_preset",
+              "value": "={{ $json.cloudinaryUnsignedPreset }}"
+            },
+            {
+              "name": "folder",
+              "value": "={{ $json.cloudinaryFolder }}"
+            },
+            {
+              "name": "public_id",
+              "value": "={{ $json.imagePublicId }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "510e2f14-89df-4e4f-921a-d3df48c0f878",
+      "name": "Upload Image to Cloudinary",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1040,
+        224
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const base = $('Parse Prompt JSON').first().json;\nconst imageUrl = $json.secure_url || $json.url || base.falImageUrl;\nif (!imageUrl) throw new Error('No hosted image URL available for Kling.');\nconst MAX_PROMPT = 2300;\nconst safeVideoPrompt = (base.video_prompt || '').slice(0, MAX_PROMPT);\nreturn [{\n  json: {\n    ...base,\n    cloudinaryImageUrl: imageUrl,\n    video_payload: {\n      prompt: safeVideoPrompt,\n      image_url: imageUrl,\n      duration: \"5\",\n      aspect_ratio: \"9:16\"\n    }\n  }\n}];"
+      },
+      "id": "283a74cf-008f-402a-a8ab-a984a624d374",
+      "name": "Prepare Kling Payload",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1264,
+        224
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://queue.fal.run/fal-ai/kling-video/v2.6/pro/image-to-video",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Key {{ $json.falApiKey }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json.video_payload }}",
+        "options": {}
+      },
+      "id": "f871df26-22ec-4990-8644-e64f39590ec2",
+      "name": "Start Kling Video",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1488,
+        224
+      ]
+    },
+    {
+      "parameters": {
+        "amount": 20
+      },
+      "id": "5e134171-177e-434c-ae05-8549ce763e2f",
+      "name": "Wait Video",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        1712,
+        224
+      ],
+      "webhookId": "eaa250e6-8dd5-4caf-bcfa-e868348084bc"
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.status_url }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Key {{ $('Prepare Kling Payload').first().json.falApiKey }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "f4f06aa5-969c-4afc-8393-2621e84b4797",
+      "name": "Check Video Status",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1936,
+        144
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const j = Array.isArray($json) ? $json[0] : $json;\nconst status = String(j.status || '').toUpperCase();\nreturn [{ json: { ...j, statusUpper: status, isFailureStatus: ['FAILED','ERROR','CANCELLED','CANCELED'].includes(status) } }];"
+      },
+      "id": "780c38dd-0130-4980-8251-7ad5fe36438a",
+      "name": "Normalize Video Status",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2160,
+        144
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.status }}",
+              "rightValue": "COMPLETED",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "5cdfc0fd-bdc7-4c05-baeb-2361253a4a1d",
+      "name": "Video Complete?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        2608,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.response_url }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Key {{ $('Prepare Kling Payload').first().json.falApiKey }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "b68cfe82-c584-4ddc-b950-8a4267c3a06a",
+      "name": "Fetch Video Result",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2832,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const base = $('Prepare Kling Payload').first().json;\nconst videoUrl = $json.video?.url || $json.videos?.[0]?.url || $json.data?.video?.url;\nif (!videoUrl) throw new Error('Kling result did not contain a video URL.');\nreturn [{\n  json: {\n    ...base,\n    falVideoUrl: videoUrl,\n    videoPublicId: `kling_${Date.now()}`\n  }\n}];"
+      },
+      "id": "3e556fad-e28e-47a3-b846-e183b0ed50e9",
+      "name": "Prepare Video Upload",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3056,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://api.cloudinary.com/v1_1/{{ $json.cloudinaryCloudName }}/video/upload",
+        "sendBody": true,
+        "contentType": "multipart-form-data",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "file",
+              "value": "={{ $json.falVideoUrl }}"
+            },
+            {
+              "name": "upload_preset",
+              "value": "={{ $json.cloudinaryUnsignedPreset }}"
+            },
+            {
+              "name": "folder",
+              "value": "={{ $json.cloudinaryFolder }}"
+            },
+            {
+              "name": "public_id",
+              "value": "={{ $json.videoPublicId }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "7e125ff6-7baf-4d8b-be4d-4ebc0deaab05",
+      "name": "Upload Video to Cloudinary",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        3280,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "={{ $('Parse Prompt JSON').first().json.openAiModel }}",
+          "mode": "id"
+        },
+        "responses": {
+          "values": [
+            {
+              "content": "=Create one social caption for Telegram delivery based on the user's original idea of {{ $('Telegram Trigger').item.json.message.text }} and the generated media.\n\nReturn ONLY valid minified JSON:\n{\n  \"caption\": \"string\",\n  \"hashtags\": \"string\"\n}\n\nRules:\n- caption should be 2-4 short lines, clean and engaging.\n- hashtags should be 3-5 relevant hashtags in one line.\n- no markdown code fences.\n\nUser idea: {{ $('Parse Prompt JSON').first().json.caption_seed }}\nImage prompt: {{ $('Parse Prompt JSON').first().json.positive_prompt }}\nVideo prompt: {{ $('Parse Prompt JSON').first().json.video_prompt }} "
+            }
+          ]
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "id": "53f0b3d1-44c6-4354-b2f3-7e5c13d95933",
+      "name": "Generate Caption",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 2.1,
+      "position": [
+        3504,
+        320
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "qmb80pU9tjFzXx6M",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const raw =\n  $json.output?.[0]?.content?.[0]?.text ??\n  $json.content?.[0]?.text ??\n  $json.text ??\n  '';\n\nif (!raw) throw new Error('OpenAI caption generator returned empty output.');\n\nlet parsed;\ntry {\n  parsed = JSON.parse(raw);\n} catch (e) {\n  const cleaned = raw.replace(/^```json\\s*/,'').replace(/```$/,'').trim();\n  parsed = JSON.parse(cleaned);\n}\n\nconst caption = (parsed.caption || '').trim();\nconst hashtags = (parsed.hashtags || '').trim();\nconst base = $('Prepare Video Upload').first().json;\nconst cloudinaryVideo = $('Upload Video to Cloudinary').first().json.secure_url || base.falVideoUrl;\n\nreturn [{\n  json: {\n    ...base,\n    cloudinaryVideoUrl: cloudinaryVideo,\n    finalCaption: `${caption}\\n\\n${hashtags}`.trim()\n  }\n}];"
+      },
+      "id": "ef2f266e-245b-4c5d-8b04-c563f2d15b0f",
+      "name": "Parse Caption JSON",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3728,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "sendPhoto",
+        "chatId": "={{ $json.telegramChatId }}",
+        "file": "={{ $json.cloudinaryImageUrl }}",
+        "additionalFields": {
+          "caption": "={{ $json.finalCaption }}"
+        }
+      },
+      "id": "59b7f1eb-f9b8-45d9-9440-40f5a936d574",
+      "name": "Send Image to Telegram",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        3952,
+        224
+      ],
+      "retryOnFail": true,
+      "waitBetweenTries": 5000,
+      "webhookId": "ff7d284a-8639-4d61-a2d6-be57461eb00a",
+      "credentials": {
+        "telegramApi": {
+          "id": "Y7qIf1EhdxgRlBxj",
+          "name": "Anubis_cinematic-bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "amount": 3
+      },
+      "id": "05ede0f8-8bfa-4afd-a9df-22ff86250feb",
+      "name": "Wait Before Video",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        3952,
+        416
+      ],
+      "webhookId": "6534c937-2493-4676-a990-79f8e5fe2c93"
+    },
+    {
+      "parameters": {
+        "operation": "sendVideo",
+        "chatId": "={{ $json.telegramChatId }}",
+        "file": "={{ $json.cloudinaryVideoUrl }}",
+        "additionalFields": {
+          "caption": "={{ $json.finalCaption }}"
+        }
+      },
+      "id": "dde0060c-66a1-4cf2-8535-4fbaa225e0fa",
+      "name": "Send Video to Telegram",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        4176,
+        416
+      ],
+      "retryOnFail": true,
+      "waitBetweenTries": 5000,
+      "webhookId": "a7dd83aa-0f2c-4d9a-82c5-c7c88f2bc979",
+      "credentials": {
+        "telegramApi": {
+          "id": "Y7qIf1EhdxgRlBxj",
+          "name": "Anubis_cinematic-bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.isFailureStatus }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "f8de9f3b-8391-4b06-bc1b-a4913af02e9e",
+      "name": "Image Failed?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        144,
+        48
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.isFailureStatus }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "194f70bd-0b50-48a1-87b2-befad40b4c4e",
+      "name": "Video Failed?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        2384,
+        144
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const source = $json;\nconst fallback = $('Parse Prompt JSON').first().json;\nconst message = [\n  'Workflow failed.',\n  'Stage: Nano Banana image generation',\n  `Status: ${source.status || source.statusUpper || 'unknown'}`,\n  `Prompt: ${fallback.caption_seed || fallback.userText || 'n/a'}`\n].join('\\n');\nreturn [{ json: { telegramChatId: fallback.telegramChatId, failureMessage: message } }];"
+      },
+      "id": "23625224-f66a-4d37-9233-7f0244503c48",
+      "name": "Image Failure Message",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        368,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const source = $json;\nconst fallback = $('Parse Prompt JSON').first().json;\nconst message = [\n  'Workflow failed.',\n  'Stage: Kling video generation',\n  `Status: ${source.status || source.statusUpper || 'unknown'}`,\n  `Prompt: ${fallback.caption_seed || fallback.userText || 'n/a'}`\n].join('\\n');\nreturn [{ json: { telegramChatId: fallback.telegramChatId, failureMessage: message } }];"
+      },
+      "id": "42f02a6b-a407-494d-bd1f-915f38bf29bd",
+      "name": "Video Failure Message",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2608,
+        96
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.telegramChatId }}",
+        "text": "={{ $json.failureMessage }}",
+        "additionalFields": {}
+      },
+      "id": "1ad6e6c6-8d6a-434f-bbab-9a123c2b4f80",
+      "name": "Send Error to Telegram (Image)",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        592,
+        0
+      ],
+      "webhookId": "2dde7a73-4251-4bdb-9ee2-58111a3ae70b",
+      "credentials": {
+        "telegramApi": {
+          "id": "Y7qIf1EhdxgRlBxj",
+          "name": "Anubis_cinematic-bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.telegramChatId }}",
+        "text": "={{ $json.failureMessage }}",
+        "additionalFields": {}
+      },
+      "id": "5b72a6fe-934d-4a5f-87aa-c7fb9ce7245e",
+      "name": "Send Error to Telegram (Video)",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        2832,
+        96
+      ],
+      "webhookId": "ba3684d9-cec7-4250-8aeb-a9c5489272ae",
+      "credentials": {
+        "telegramApi": {
+          "id": "Y7qIf1EhdxgRlBxj",
+          "name": "Anubis_cinematic-bot"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Telegram Trigger": {
+      "main": [
+        [
+          {
+            "node": "Extract Telegram Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Telegram Input": {
+      "main": [
+        [
+          {
+            "node": "Configuration",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Configuration": {
+      "main": [
+        [
+          {
+            "node": "Build Reference Image Array",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Structured Prompts": {
+      "main": [
+        [
+          {
+            "node": "Parse Prompt JSON",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Prompt JSON": {
+      "main": [
+        [
+          {
+            "node": "Start Nano Banana Edit",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Start Nano Banana Edit": {
+      "main": [
+        [
+          {
+            "node": "Wait Image",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait Image": {
+      "main": [
+        [
+          {
+            "node": "Check Image Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Image Status": {
+      "main": [
+        [
+          {
+            "node": "Normalize Image Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize Image Status": {
+      "main": [
+        [
+          {
+            "node": "Image Failed?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Image Complete?": {
+      "main": [
+        [
+          {
+            "node": "Fetch Image Result",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Wait Image",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Image Result": {
+      "main": [
+        [
+          {
+            "node": "Prepare Image Upload",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Image Upload": {
+      "main": [
+        [
+          {
+            "node": "Upload Image to Cloudinary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upload Image to Cloudinary": {
+      "main": [
+        [
+          {
+            "node": "Prepare Kling Payload",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Kling Payload": {
+      "main": [
+        [
+          {
+            "node": "Start Kling Video",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Start Kling Video": {
+      "main": [
+        [
+          {
+            "node": "Wait Video",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait Video": {
+      "main": [
+        [
+          {
+            "node": "Check Video Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Video Status": {
+      "main": [
+        [
+          {
+            "node": "Normalize Video Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize Video Status": {
+      "main": [
+        [
+          {
+            "node": "Video Failed?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Video Complete?": {
+      "main": [
+        [
+          {
+            "node": "Fetch Video Result",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Wait Video",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Video Result": {
+      "main": [
+        [
+          {
+            "node": "Prepare Video Upload",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Video Upload": {
+      "main": [
+        [
+          {
+            "node": "Upload Video to Cloudinary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upload Video to Cloudinary": {
+      "main": [
+        [
+          {
+            "node": "Generate Caption",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Caption": {
+      "main": [
+        [
+          {
+            "node": "Parse Caption JSON",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Caption JSON": {
+      "main": [
+        [
+          {
+            "node": "Send Image to Telegram",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Wait Before Video",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait Before Video": {
+      "main": [
+        [
+          {
+            "node": "Send Video to Telegram",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Reference Image Array": {
+      "main": [
+        [
+          {
+            "node": "Generate Structured Prompts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Image Failed?": {
+      "main": [
+        [
+          {
+            "node": "Image Failure Message",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Image Complete?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Image Failure Message": {
+      "main": [
+        [
+          {
+            "node": "Send Error to Telegram (Image)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Video Failed?": {
+      "main": [
+        [
+          {
+            "node": "Video Failure Message",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Video Complete?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Video Failure Message": {
+      "main": [
+        [
+          {
+            "node": "Send Error to Telegram (Video)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false
+  },
+  "versionId": "6ae7e32d-38d1-46cf-b1ed-92c16c29a323",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "73b0ef7912b94af41030d669361dedec64742b8175b5827e85bf2c8e375e8312"
+  },
+  "id": "o0i6fm4kwYuVJ0W6",
+  "tags": []
+}
